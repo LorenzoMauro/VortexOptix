@@ -215,9 +215,9 @@ namespace vtx::math
 		}
 
 		inline __host__ __device__ void toFloat4(float4* out) const {
-			out[0].x = (float)l.vx.x; out[0].y = (float)l.vx.y; out[0].z = (float)l.vx.z; out[0].w = 0.0f;
-			out[1].x = (float)l.vy.x; out[1].y = (float)l.vy.y; out[1].z = (float)l.vy.z; out[1].w = 0.0f;
-			out[2].x = (float)l.vz.x; out[2].y = (float)l.vz.y; out[2].z = (float)l.vz.z; out[2].w = 0.0f;
+			out[0].x = (float)l.vx.x; out[0].y = (float)l.vx.y; out[0].z = (float)l.vx.z; out[0].w = p.x;
+			out[1].x = (float)l.vy.x; out[1].y = (float)l.vy.y; out[1].z = (float)l.vy.z; out[1].w = p.y;
+			out[2].x = (float)l.vz.x; out[2].y = (float)l.vz.y; out[2].z = (float)l.vz.z; out[2].w = p.z;
 		}
 
 		//Constructor from Scalar_t[12] array in row major order
