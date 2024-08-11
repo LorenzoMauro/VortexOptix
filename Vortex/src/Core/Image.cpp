@@ -72,6 +72,10 @@ namespace vtx
 		{
 			VTX_INFO("Some error occured saving image: {}", path);
 		}
+		else
+		{
+			VTX_INFO("Image saved: {}", path);
+		}
 		return;
 	}
 	int Image::getWidth() const
