@@ -169,7 +169,7 @@ export material principledVortex(
 
     //Transmission BASE
 	bsdf diffuseTransmission = df::diffuse_transmission_bsdf(tint: BaseColor);
-	bsdf clarTransmission = df::microfacet_ggx_smith_bsdf(
+	bsdf clarTransmission = df::simple_glossy_bsdf(
 				roughness_u: 0.0,
 				tint: BaseColor,
 				mode: ::df::scatter_transmit);
@@ -189,11 +189,12 @@ export material principledVortex(
 	);
 
     //Glossiness Component
-	bsdf ggx_smith_dielectric = df::microfacet_ggx_smith_bsdf(
+	bsdf ggx_smith_dielectric = df::simple_glossy_bsdf(
 		roughness_u:    aniRough.roughness.x,
 		roughness_v:    aniRough.roughness.y,
         tangent_u: aniRough.tangent,
 		tint:           color(1.0f),
+		//multiscatter_tint: color(1.0),
 		mode:           df::scatter_reflect
 	);
 	bsdf glossyFresnel = df::fresnel_layer(
@@ -210,30 +211,44 @@ export material principledVortex(
         extinction_coefficient: metal_ior.k,
         base: metal);
 
+		
+    //bsdf thinFilm = df::thin_film(
+    bsdf thinFilm = df::thin_film(
+        ior: color(FilmIor),
+        thickness: FilmThickness,
+        base: metal_brdf_fresnel_factored
+    );
+    bsdf ThinFilmMix = df::weighted_layer(
+        weight: FilmAmmount,
+        layer: thinFilm,
+        base: metal);
+
 
     //Metallic Glossy Mix
     bsdf MetalGlossyMix = df::weighted_layer(
         weight: Metallic,
-        layer: metal,
+        layer: ThinFilmMix,
         base: glossyFresnel,
         normal: Normal);
     
 
+
     //Coat
     VortexFunctions::AnisotropicRoughness aniRoughCoat = VortexFunctions::computeRoughnessAnisotropy(CoatRoughness, Anisotropy, Anisotropy_rotation);
 	
-	bsdf coat_bsdf = df::microfacet_ggx_smith_bsdf(
+	bsdf opaque_coat = df::weighted_layer(
+        weight:     CoatTransparency,
+		layer:	    MetalGlossyMix, //::df::tint( tint: CoatColor, base: MetalGlossyMix),
+		base:	    ::df::diffuse_reflection_bsdf(tint: CoatColor)
+	);
+
+	bsdf coat_bsdf = df::simple_glossy_bsdf(
 		roughness_u:    aniRoughCoat.roughness.x,
 		roughness_v:    aniRoughCoat.roughness.y,
         tangent_u:      aniRoughCoat.tangent,
-		tint:           color(1.0),
+		tint:          color(1.0),
+		//multiscatter_tint: color(1.0),
 		mode:           df::scatter_reflect
-	);
-
-	bsdf opaque_coat = df::weighted_layer(
-        weight:     CoatTransparency,
-		layer:	    ::df::tint( tint: CoatColor, base: MetalGlossyMix),
-		base:	    ::df::diffuse_reflection_bsdf(tint: CoatColor)
 	);
 	
 	bsdf omni_PBR_coated_bsdf = df::fresnel_layer(
@@ -244,17 +259,8 @@ export material principledVortex(
 		normal:  ClearcoatNormal 
 	);
     
-    bsdf thinFilm = df::thin_film(
-        ior: color(FilmIor),
-        thickness: FilmThickness,
-        base: omni_PBR_coated_bsdf
-    );
-    bsdf ThinFilmMix = df::weighted_layer(
-        weight: FilmAmmount,
-        layer: thinFilm,
-        base: omni_PBR_coated_bsdf);
     
-    bsdf finalBsdf = ThinFilmMix;
+    bsdf finalBsdf = omni_PBR_coated_bsdf;
 
     // Emission
     color emission_value = EmissionColor * color(EmissionIntensity);
