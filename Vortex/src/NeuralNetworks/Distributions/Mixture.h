@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef MIXTURE_H
 #define MIXTURE_H
 
@@ -15,7 +15,6 @@
 
 namespace vtx::distribution
 {
-
     class Mixture
     {
     public:
@@ -24,15 +23,15 @@ namespace vtx::distribution
 
         static torch::Tensor prob(const torch::Tensor& x, const torch::Tensor& mixtureParams, const torch::Tensor& mixtureWeights, network::config::DistributionType type);
 
-        static std::tuple<torch::Tensor, torch::Tensor > sample(const torch::Tensor& mixtureParams, const torch::Tensor& mixtureWeights, network::config::DistributionType type);
+		static std::tuple<torch::Tensor, torch::Tensor> sample(const torch::Tensor& mixtureParams, const torch::Tensor& mixtureWeights, network::config::DistributionType type);
 
 		static void setGraphData(
 			network::config::DistributionType type,
-			const torch::Tensor& params,
-			const torch::Tensor& mixtureWeights,
-			network::GraphsData& graphData,
-			const bool isTraining,
-			const int depth = 0);
+			const torch::Tensor&              params,
+			const torch::Tensor&              mixtureWeights,
+			network::GraphsData&              graphData,
+			const bool                        isTraining,
+			const int                         depth = 0);
 		
 #else
 		__forceinline__ __device__ static float evaluate(const float* mixtureParameters, const float* weights, const int mixtureSize, network::config::DistributionType type, const math::vec3f& sample)

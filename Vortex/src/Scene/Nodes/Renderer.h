@@ -15,13 +15,9 @@
 
 namespace vtx::graph
 {
-
-
-
 	class Renderer : public Node
 	{
 	public:
-
 		Renderer();
 
 		void resize(int width, int height);
@@ -39,32 +35,35 @@ namespace vtx::graph
 		void prepare();
 
 		void copyToGl();
-		void  setWindow(GLFWwindow* window);
+		void setWindow(GLFWwindow* window);
 
 		void accept(NodeVisitor& visitor) override;
 
 		vtxID getInstanceIdOnClick(int pixelID);
 	public:
 		//GL Interop
-		WaveFrontIntegrator								waveFrontIntegrator;
+		WaveFrontIntegrator waveFrontIntegrator;
 
-		InteropWrapper	interopDraw;
-		InteropWrapper	interopDisplay;
+		InteropWrapper interopDraw;
+		InteropWrapper interopDisplay;
 
-		std::shared_ptr<Camera>							camera;
-		std::shared_ptr<Group>							sceneRoot;
-		std::shared_ptr<EnvironmentLight>				environmentLight;
+		std::shared_ptr<Camera>           camera;
+		std::shared_ptr<Group>            sceneRoot;
+		std::shared_ptr<EnvironmentLight> environmentLight;
 
-		uint32_t										width;
-		uint32_t										height;
-		bool											isSizeLocked = false;
-		RendererSettings								settings;
-		bool											resized = true;
-		vtx::Timer timer;
+		uint32_t         width;
+		uint32_t         height;
+		int              lockWidth    = 0;
+		int              lockHeight   = 0;
+		bool             isSizeLocked = false;
+		RendererSettings settings;
+		bool             resized = true;
+		vtx::Timer       timer;
 
 		Statistics statistics;
 
-		struct ThreadData {
+		struct ThreadData
+		{
 			template <typename Fn>
 			ThreadData(Fn renderFunction, Renderer* instance):
 				//renderThreadBusy(false),
@@ -75,15 +74,17 @@ namespace vtx::graph
 				renderThread = std::thread(
 					[this, renderFunction, instance]
 					{
-						while (true) {
+											   while (true)
+											   {
 							// start timer
 							std::unique_lock<std::mutex> lock(renderMutex);
 							renderCondition.wait(lock, [this] { return exitRenderThread || rendererBusy; });
-							if (exitRenderThread) {
+												   if (exitRenderThread)
+												   {
 								break;
 							}
 							glfwMakeContextCurrent(instance->sharedContext); // Make the shared context current in this thread
-							std::invoke(renderFunction, instance); // Use std::invoke to call the member function pointer
+												   std::invoke(renderFunction, instance);           // Use std::invoke to call the member function pointer
 							rendererBusy = false;
 							//bufferUpdateReady = true;
 						}
@@ -91,7 +92,8 @@ namespace vtx::graph
 					);
 			}
 
-			~ThreadData() {
+			~ThreadData()
+			{
 				{
 					std::lock_guard<std::mutex> lock(renderMutex);
 					exitRenderThread = true;
@@ -114,6 +116,4 @@ namespace vtx::graph
 		bool        resizeGlBuffer;
 		GLFWwindow* sharedContext;
 	};
-
-
 }

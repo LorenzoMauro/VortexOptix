@@ -6,7 +6,8 @@
 
 namespace vtx::graph
 {
-    namespace shader {
+	namespace shader
+	{
         class Material;
         class DiffuseReflection;
         class Texture;
@@ -22,18 +23,20 @@ namespace vtx::graph
     class Scene;
 }
 
-namespace vtx::ops {
-
-    template<typename T,typename... Ts>
-    std::shared_ptr<T> createNode(Ts... optionalArgs) {
+namespace vtx::ops
+{
+	template <typename T, typename... Ts>
+	std::shared_ptr<T> createNode(Ts... optionalArgs)
+	{
         static_assert(std::is_base_of_v<graph::Node, T>, "Pushed type is not subclass of Node!");
         std::shared_ptr<T> node = std::make_shared<T>(optionalArgs...);
         graph::Scene::getSim()->record(node);
         return node;
     }
 
-    template<typename T, typename... Ts>
-    std::shared_ptr<T> createNodeAndRemoveSIMReferences(Ts... optionalArgs) {
+	template <typename T, typename... Ts>
+	std::shared_ptr<T> createNodeAndRemoveSIMReferences(Ts... optionalArgs)
+	{
         static_assert(std::is_base_of_v<graph::Node, T>, "Pushed type is not subclass of Node!");
         std::shared_ptr<T> node = std::make_shared<T>(optionalArgs...);
         graph::Scene::getSim()->record(node);
@@ -48,7 +51,7 @@ namespace vtx::ops {
 
     std::shared_ptr<graph::Camera> standardCamera();
 
-    std::shared_ptr<graph::Mesh> createPlane(float width=2.0f, float height=2.0f);
+	std::shared_ptr<graph::Mesh> createPlane(float width = 2.0f, float height = 2.0f);
 
     void updateMaterialSlots(std::shared_ptr<graph::Mesh> mesh, int removedSlot);
 

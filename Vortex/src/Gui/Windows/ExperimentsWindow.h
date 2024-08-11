@@ -31,10 +31,10 @@ namespace vtx {
 
         ExperimentsWindow();
 
-        virtual void OnUpdate(float ts);
+        void OnUpdate(float ts) override;
 
-        virtual void mainContent() override;
-        virtual void toolBarContent() override;
+        void mainContent() override;
+        void toolBarContent() override;
 
         void startNewRender(SamplingTechnique technique);
 

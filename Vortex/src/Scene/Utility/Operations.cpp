@@ -591,11 +591,10 @@ namespace vtx::ops
 			}
 
 			// Compute tangent and bitangent
-			float determinant = deltaUv1.x * deltaUv2.y - deltaUv1.y * deltaUv2.x;
-			float f           = 1.0f / determinant;
-			math::vec3f tangent = (e1 * deltaUv2.y - e2 * deltaUv1.y) * f;
-
-			math::vec3f bitangent;
+			float       determinant = deltaUv1.x * deltaUv2.y - deltaUv1.y * deltaUv2.x;
+			float       f           = 1.0f / determinant;
+			math::vec3f tangent     = (e1 * deltaUv2.y - e2 * deltaUv1.y) * f;
+			math::vec3f bitangent; // = (e2 * deltaUv1.x - e1 * deltaUv2.x) * f;
 			bitangent = cross(normal, tangent);
 
 			if (determinant < 0.0f)
@@ -628,12 +627,12 @@ namespace vtx::ops
 			math::vec3f& t = vertex.tangent;
 			math::vec3f& b = vertex.bitangent;
 
-			if(math::isZero(n))
+			if (math::isZero(n))
 			{
 				n = math::vec3f(0.0f, 0.0f, 1.0f);
 				VTX_WARN("Normal Vector was Zero in mesh Id: {}, vertex index {}", mesh->getUID(), i);
 			}
-			if(math::isZero(t))
+			if (math::isZero(t))
 			{
 				t = math::vec3f(1.0f, 0.0f, 0.0f);
 				VTX_WARN("Tangent Vector was Zero in mesh Id: {}, vertex index {}", mesh->getUID(), i);
@@ -711,9 +710,9 @@ namespace vtx::ops
 		Cube1->transform->translate(math::xAxis, 2.0f);
 		Cube1->addMaterial(material1);
 		sceneRoot->addChild(Cube1);
-		std::shared_ptr<Material> materialEmissive = ops::createNode<Material>();
-		const std::shared_ptr<graph::shader::ImportedNode> materialGraph = ops::createNode<graph::shader::ImportedNode>("\\nvidia\\vMaterials\\AEC\\Lights\\Lights_Emitter.mdl", "naturalwhite_4000k", true);
-		materialEmissive->materialGraph = materialGraph;
+		std::shared_ptr<Material>                          materialEmissive = ops::createNode<Material>();
+		const std::shared_ptr<graph::shader::ImportedNode> materialGraph    = ops::createNode<graph::shader::ImportedNode>("\\nvidia\\vMaterials\\AEC\\Lights\\Lights_Emitter.mdl", "naturalwhite_4000k", true);
+		materialEmissive->materialGraph                                     = materialGraph;
 
 
 		std::shared_ptr<Instance> Cube2 = ops::createNode<Instance>();
@@ -754,7 +753,7 @@ namespace vtx::ops
 		//std::string envMapPath =  getOptions()->dataFolder  + "sunset03_EXR.exr";
 		//std::string envMapPath =  getOptions()->dataFolder  + "morning07_EXR.exr";
 		const std::shared_ptr<EnvironmentLight> envLight = ops::createNode<EnvironmentLight>();
-		envLight->envTexture                  = ops::createNode<Texture>(envMapPath);
+		envLight->envTexture                             = ops::createNode<Texture>(envMapPath);
 		sceneRoot->addChild(envLight);
 		//std::string envMapPath = getOptions()->dataFolder + "belfast_sunset_puresky_4k.hdr";
 		//std::string envMapPath = getOptions()->dataFolder + "mpumalanga_veld_puresky_4k.hdr";
@@ -805,10 +804,10 @@ namespace vtx::ops
 			STUDIO_SMALL_03
 		};
 
-		MdlMaterials mdlMaterial = STONE_MEDITERRANEAN;
-		TestType     testType    = IMPORTED_MATERIALS;
-		ImportedScene importedScene = BLENDER_TEST;
-		EnvironmentMap envMap = PURE_SKY_VELD;
+		MdlMaterials   mdlMaterial   = STONE_MEDITERRANEAN;
+		TestType       testType      = IMPORTED_MATERIALS;
+		ImportedScene  importedScene = BLENDER_TEST;
+		EnvironmentMap envMap        = PURE_SKY_VELD;
 
 
 		std::string scenePath;
@@ -817,21 +816,24 @@ namespace vtx::ops
 			case BLENDER_TEST:
 			{
 				scenePath = getOptions()->dataFolder + "models/Blender/blenderTest13.gltf";
-			}break;
+			}
+			break;
 			case SPONZA_OBJ:
 			{
 				scenePath = getOptions()->dataFolder + "models/sponza2/sponza.obj";
-			}break;
+			}
+			break;
 			case SPONZA_FBX:
 			{
 				scenePath = getOptions()->dataFolder + "models/sponza/FBX 2013/NewSponza_Main_Zup_002.fbx";
-			}break;
+			}
+			break;
 		}
 
 		const auto [sceneRoot, cameras] = importer::importSceneFile(scenePath);
 
 		std::shared_ptr<graph::Camera> camera;
-		if(cameras.size() != 0)
+		if (cameras.size() != 0)
 		{
 			camera = cameras[0];
 		}
@@ -845,10 +847,10 @@ namespace vtx::ops
 			case IMPORTED_MATERIALS: break;
 			case CREATED_PRINCIPLED:
 			{
-				const std::vector<std::shared_ptr<Instance>> instances     = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
+				const std::vector<std::shared_ptr<Instance>> instances = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
 
-				const std::shared_ptr<Material>          pBsdfMaterial1 = ops::createNode<Material>();
-				auto principledGraph1 = ops::createNode<graph::shader::PrincipledMaterial>();
+				const std::shared_ptr<Material> pBsdfMaterial1   = ops::createNode<Material>();
+				auto                            principledGraph1 = ops::createNode<graph::shader::PrincipledMaterial>();
 				//principledGraph1->connectInput(ALBEDO_SOCKET, ops::createNode<graph::shader::ColorTexture>("E:/Dev/VortexOptix/data/models/Blender/textures/schvfgwp_2K_Albedo.jpg"));
 				//principledGraph1->connectInput(ROUGHNESS_SOCKET, ops::createNode<graph::shader::MonoTexture>("E:/Dev/VortexOptix/data/models/Blender/textures/schvfgwp_2K_Roughness.jpg"));
 				//principledGraph1->connectInput(METALLIC_SOCKET, ops::createNode<graph::shader::MonoTexture>("E:/Dev/VortexOptix/data/models/Blender/textures/schvfgwp_2K_Metalness.jpg"));
@@ -862,8 +864,8 @@ namespace vtx::ops
 			break;
 			case IMPORTED_MDL:
 			{
-				const std::vector<std::shared_ptr<Instance>> instances = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
-				const std::shared_ptr<Material> importedMdlMaterial = ops::createNode<Material>();
+				const std::vector<std::shared_ptr<Instance>> instances           = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
+				const std::shared_ptr<Material>              importedMdlMaterial = ops::createNode<Material>();
 
 				std::string materialName;
 				std::string materialPath;
@@ -890,7 +892,7 @@ namespace vtx::ops
 					break;
 				}
 				const std::shared_ptr<graph::shader::ImportedNode> materialGraph = ops::createNode<graph::shader::ImportedNode>(materialPath, materialName, true);
-				importedMdlMaterial->materialGraph = materialGraph;
+				importedMdlMaterial->materialGraph                               = materialGraph;
 
 				for (const std::shared_ptr<Instance>& instance : instances)
 				{
@@ -898,11 +900,10 @@ namespace vtx::ops
 				}
 			}
 			break;
-			case CREATED_MDL : 
+		case CREATED_MDL:
 			{
-
 				const auto roughnessTextureMono = ops::createNode<graph::shader::MonoTexture>("E:/Dev/VortexOptix/data/Textures/xboibga_2K_Roughness.jpg");
-				const auto diffuseTextureColor = ops::createNode<graph::shader::ColorTexture>("E:/Dev/VortexOptix/data/Textures/xboibga_2K_Albedo.jpg");
+				const auto diffuseTextureColor  = ops::createNode<graph::shader::ColorTexture>("E:/Dev/VortexOptix/data/Textures/xboibga_2K_Albedo.jpg");
 
 				const auto brdfNode = ops::createNode<shader::DiffuseReflection>();
 				brdfNode->connectInput("tint", diffuseTextureColor);
@@ -915,9 +916,9 @@ namespace vtx::ops
 				const auto materialGraph = ops::createNode<shader::Material>();
 				materialGraph->connectInput("surface", surfaceNode);
 
-				const std::vector<std::shared_ptr<Instance>> instances = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
-				const std::shared_ptr<Material> createdMaterial = ops::createNode<Material>();
-				createdMaterial->materialGraph = materialGraph;
+				const std::vector<std::shared_ptr<Instance>> instances       = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
+				const std::shared_ptr<Material>              createdMaterial = ops::createNode<Material>();
+				createdMaterial->materialGraph                               = materialGraph;
 
 				for (const std::shared_ptr<Instance>& instance : instances)
 				{
@@ -930,18 +931,24 @@ namespace vtx::ops
 		// Environment Map Settings
 		{
 			std::string envMapPath;
-			switch(envMap)
+			switch (envMap)
 			{
-			case SUNSET_QUARRY: {envMapPath = getOptions()->dataFolder + "Hdri/"	+ "sunset_in_the_chalk_quarry_1k.hdr";} break;
-			case SUNSET_BELFAST: {envMapPath = getOptions()->dataFolder + "Hdri/"	+ "belfast_sunset_puresky_4k.hdr";} break;
-			case PURE_SKY_VELD: {envMapPath = getOptions()->dataFolder + "Hdri/"	+ "mpumalanga_veld_puresky_4k.hdr";} break;
-			case SUNRISE_BLOUBERG: {envMapPath = getOptions()->dataFolder + "Hdri/"	+ "blouberg_sunrise_2_1k.hdr";} break;
-			case PURE_SKY_QWANTANI: {envMapPath = getOptions()->dataFolder + "Hdri/"	+ "qwantani_1k.hdr";} break;
-			case STUDIO_SMALL_03: {envMapPath = getOptions()->dataFolder + "Hdri/" + "studio_small_03_1k.hdr"; } break;
+			case SUNSET_QUARRY: { envMapPath = getOptions()->dataFolder + "Hdri/" + "sunset_in_the_chalk_quarry_1k.hdr"; }
+				break;
+			case SUNSET_BELFAST: { envMapPath = getOptions()->dataFolder + "Hdri/" + "belfast_sunset_puresky_4k.hdr"; }
+				break;
+			case PURE_SKY_VELD: { envMapPath = getOptions()->dataFolder + "Hdri/" + "mpumalanga_veld_puresky_4k.hdr"; }
+				break;
+			case SUNRISE_BLOUBERG: { envMapPath = getOptions()->dataFolder + "Hdri/" + "blouberg_sunrise_2_1k.hdr"; }
+				break;
+			case PURE_SKY_QWANTANI: { envMapPath = getOptions()->dataFolder + "Hdri/" + "qwantani_1k.hdr"; }
+				break;
+			case STUDIO_SMALL_03: { envMapPath = getOptions()->dataFolder + "Hdri/" + "studio_small_03_1k.hdr"; }
+				break;
 			}
 
 			const std::shared_ptr<EnvironmentLight> envLight = ops::createNode<EnvironmentLight>();
-			envLight->envTexture = ops::createNode<Texture>(envMapPath);
+			envLight->envTexture                             = ops::createNode<Texture>(envMapPath);
 			sceneRoot->addChild(envLight);
 		}
 

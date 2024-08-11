@@ -16,13 +16,13 @@ namespace vtx
 
 static const std::string hiddenLabel = "##hidden";
 
-typedef bool (*ComboFuncType)(const char*, int*, const char* const [], int, int);
+typedef bool (*ComboFuncType)(const char*, int*, const char* const[], int, int);
 
 namespace vtx::vtxImGui
 {
     const char* emptyFormatCallback();
 
-    bool sliderFloat(const char* label, float* value, const float min, const float max, const char* format="%.3f");
+	bool sliderFloat(const char* label, float* value, const float min, const float max, const char* format = "%.3f");
 
     bool clippedText(const char* label);
 
@@ -36,12 +36,13 @@ namespace vtx::vtxImGui
 
     bool vectorGui(float* data, bool disableEdit = false);
 
-    void pushHalfSpaceWidgetFraction(const float fraction);
-    void popHalfSpaceWidgetFraction();
+	void  pushHalfSpaceWidgetFraction(const float fraction);
+	void  popHalfSpaceWidgetFraction();
     float getHalfWidgetFraction();
 
-	template<typename Func, typename ...Args>
-    bool halfSpaceWidget(const char* label, Func&& widgetFunc, Args&&... args) {
+	template <typename Func, typename... Args>
+	bool halfSpaceWidget(const char* label, Func&& widgetFunc, Args&&... args)
+	{
         bool              valueChanged = false;
 		const ImGuiStyle& style        = ImGui::GetStyle();
 
@@ -54,7 +55,7 @@ namespace vtx::vtxImGui
         //const float totalItemWidth = ImGui::CalcItemWidth();
         const float totalItemWidth = ImGui::GetContentRegionAvail().x;
 
-        const float labelWidth = totalItemWidth * labelFraction;
+		const float labelWidth  = totalItemWidth * labelFraction;
         const float widgetWidth = totalItemWidth * (1.0f - labelFraction);
 
         ImGui::PushItemWidth(labelWidth - style.ItemSpacing.x); // Set the width of the next widget to 200
@@ -65,13 +66,15 @@ namespace vtx::vtxImGui
 
         ImGui::PopItemWidth(); // Restore the width
 
-        ImGui::SameLine(); // Draw the button on the same line as the label
-        ImGui::SetCursorPosX(cursorPosX + labelWidth); // Position in window coordinates
+		ImGui::SameLine();                                       // Draw the button on the same line as the label
+		ImGui::SetCursorPosX(cursorPosX + labelWidth);           // Position in window coordinates
         ImGui::PushItemWidth(widgetWidth - style.ItemSpacing.x); // Set the width of the next widget to 200
-        if constexpr (std::is_same_v<bool, std::invoke_result_t<Func, Args...>>) {
+		if constexpr (std::is_same_v<bool, std::invoke_result_t<Func, Args...>>)
+		{
             valueChanged = widgetFunc(std::forward<Args>(args)...);
         }
-        else {
+		else
+		{
             widgetFunc(std::forward<Args>(args)...);
         }
         ImGui::PopItemWidth(); // Restore the width
@@ -86,14 +89,14 @@ namespace vtx::vtxImGui
 
     bool halfSpaceDragFloat(const char* label, float* v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0);
 
-    template<typename Enum>
+	template <typename Enum>
     bool halfSpaceCombo(const char* label, Enum& enumVariable, const char* const enumNames[], int enumCount)
     {
-        int intEnum = (int)enumVariable;
+		int  intEnum   = (int)enumVariable;
         bool isUpdated = false;
         if (vtxImGui::halfSpaceWidget(label, (ComboFuncType)ImGui::Combo, (hiddenLabel + label).c_str(), &intEnum, enumNames, enumCount, -1))
         {
-            isUpdated = true;
+			isUpdated    = true;
             enumVariable = static_cast<Enum>(intEnum);
         }
         return isUpdated;
@@ -118,6 +121,4 @@ namespace vtx::vtxImGui
     void drawVector(const std::shared_ptr<graph::Camera>& camera, const math::vec3f& origin, const math::vec3f& direction, const math::vec3f& color = 1.0f);
 
     void connectScenePoints(const std::shared_ptr<graph::Camera>& camera, const math::vec3f& point1, const math::vec3f& point2, const math::vec3f& color);
-
 }
-

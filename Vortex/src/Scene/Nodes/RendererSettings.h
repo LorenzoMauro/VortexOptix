@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <map>
 
 namespace vtx
@@ -151,21 +151,21 @@ namespace vtx
 		{"Diffuse", FB_DIFFUSE},
 		{"Orientation", FB_ORIENTATION},
 		{"True Normal", FB_TRUE_NORMAL},
-		{"Shading Normal",FB_SHADING_NORMAL },
+		{"Shading Normal", FB_SHADING_NORMAL},
 		{"Tangent", FB_TANGENT},
 		{"Uv", FB_UV},
 		{"Noise", FB_NOISE},
 		{"GBuffer", FB_GBUFFER},
 		{"Samples", FB_SAMPLES},
-		{"Debug1",FB_DEBUG_1},
+		{"Debug1", FB_DEBUG_1},
 		{"Network Inference State Position", FB_NETWORK_INFERENCE_STATE_POSITION},
 		{"Network Inference State Normal", FB_NETWORK_INFERENCE_STATE_NORMAL},
-		{"Network Inference Outgoing Direction",FB_NETWORK_INFERENCE_OUTGOING_DIRECTION },
-		{"Network Inference Concentration",FB_NETWORK_INFERENCE_CONCENTRATION },
-		{"Network Inference Anisotropy",FB_NETWORK_INFERENCE_ANISOTROPY },
+		{"Network Inference Outgoing Direction", FB_NETWORK_INFERENCE_OUTGOING_DIRECTION},
+		{"Network Inference Concentration", FB_NETWORK_INFERENCE_CONCENTRATION},
+		{"Network Inference Anisotropy", FB_NETWORK_INFERENCE_ANISOTROPY},
 		{"Network Inference Mean", FB_NETWORK_INFERENCE_MEAN},
 		{"Network Inference Sample", FB_NETWORK_INFERENCE_SAMPLE},
-		{"Network Inference Sample Debug",FB_NETWORK_INFERENCE_SAMPLE_DEBUG },
+		{"Network Inference Sample Debug", FB_NETWORK_INFERENCE_SAMPLE_DEBUG},
 		{"Network Inference Pdf", FB_NETWORK_INFERENCE_PDF},
 		{"Network Inference Is Front Face", FB_NETWORK_INFERENCE_IS_FRONT_FACE},
 		{"Network Inference Sampling Fraction", FB_NETWORK_INFERENCE_SAMPLING_FRACTION},
@@ -208,33 +208,33 @@ namespace vtx
 
 	struct QuadrantTechniqueSplit
 	{
-		SamplingTechnique st = S_MIS;
-		bool neuralActivated = false;
+		SamplingTechnique st              = S_MIS;
+		bool              neuralActivated = false;
 	};
 
 	struct QuadrantsSettings
 	{
-		bool isActivated = false;
+		bool                   isActivated = false;
 		QuadrantTechniqueSplit topLeft;
 		QuadrantTechniqueSplit topRight;
 		QuadrantTechniqueSplit bottomLeft;
 		QuadrantTechniqueSplit bottomRight;
-		bool isUpdated = false;
+		bool                   isUpdated = false;
 	};
 
 	struct RendererSettings
 	{
-		int               iteration;
-		int               maxBounces;
-		int               maxSamples;
-		bool              accumulate;
-		SamplingTechnique samplingTechnique;
-		DisplayBuffer     displayBuffer;
-		float             minClamp;
-		float             maxClamp;
-		bool              useRussianRoulette;
-		bool              runOnSeparateThread;
-		bool              isUpdated = true;
+		int                      iteration;
+		int                      maxBounces;
+		int                      maxSamples;
+		bool                     accumulate;
+		SamplingTechnique        samplingTechnique;
+		DisplayBuffer            displayBuffer;
+		float                    minClamp;
+		float                    maxClamp;
+		bool                     useRussianRoulette;
+		bool                     runOnSeparateThread;
+		bool                     isUpdated = true;
 		AdaptiveSamplingSettings adaptiveSamplingSettings;
 		FireflySettings           fireflySettings;
 		DenoiserSettings          denoiserSettings;
@@ -243,12 +243,12 @@ namespace vtx
 
 		void resetUpdate()
 		{
-			isUpdated = false;
+			isUpdated                          = false;
 			adaptiveSamplingSettings.isUpdated = false;
-			fireflySettings.isUpdated = false;
-			denoiserSettings.isUpdated = false;
-			toneMapperSettings.isUpdated = false;
-			quadrantsSettings.isUpdated = false;
+			fireflySettings.isUpdated          = false;
+			denoiserSettings.isUpdated         = false;
+			toneMapperSettings.isUpdated       = false;
+			quadrantsSettings.isUpdated        = false;
 		}
 
 		bool isAnyUpdated()

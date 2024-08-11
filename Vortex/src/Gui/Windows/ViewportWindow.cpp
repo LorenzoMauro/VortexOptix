@@ -20,8 +20,8 @@ namespace vtx {
 
     ViewportWindow::ViewportWindow() : renderer(graph::Scene::get()->renderer)
     {
-        name          = "Viewport";
-        useToolbar = false;
+		name         = "Viewport";
+		useToolbar   = false;
         isBorderLess = true;
     }
 
@@ -32,14 +32,14 @@ namespace vtx {
     void ViewportWindow::mainContent()
     {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        const int width = (int)ImGui::GetContentRegionAvail().x;
+		const int width  = (int)ImGui::GetContentRegionAvail().x;
         const int height = (int)ImGui::GetContentRegionAvail().y;
-        if(!renderer->isSizeLocked)
+		if (!renderer->isSizeLocked)
         {
             renderer->resize(width, height);
         }
         const GlFrameBuffer& bf = renderer->getFrame();
-        ImGui::Image((ImTextureID)bf.colorAttachment, ImVec2{ static_cast<float>(bf.width), static_cast<float>(bf.height) }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+		ImGui::Image((ImTextureID)bf.colorAttachment, ImVec2{static_cast<float>(bf.width), static_cast<float>(bf.height)}, ImVec2{0, 1}, ImVec2{1, 0});
 
         bool isTransforming = false;
         if (ImGui::IsItemHovered())
@@ -52,7 +52,8 @@ namespace vtx {
                 isTransforming = transformUI.isTransforming();
 
                 // activate selection interaction only if not transforming
-                if (!isTransforming && ImGui::IsItemClicked()) {
+				if (!isTransforming && ImGui::IsItemClicked())
+				{
                     if (ImGui::GetIO().KeyCtrl)
                     {
                         //We remove all selected instances
@@ -60,24 +61,23 @@ namespace vtx {
                     }
                     else
                     {
-                        const ImVec2 mousePos = ImGui::GetMousePos();
+						const ImVec2 mousePos  = ImGui::GetMousePos();
                         const ImVec2 windowPos = ImGui::GetWindowPos();
 
                         const int mouseXRelativeToWindow = static_cast<int>(mousePos.x - windowPos.x);
                         const int mouseYRelativeToWindow = static_cast<int>(bf.height) - static_cast<int>(mousePos.y - windowPos.y);
-                        const int pixelIndex = mouseYRelativeToWindow * width + mouseXRelativeToWindow;
+						const int pixelIndex             = mouseYRelativeToWindow * width + mouseXRelativeToWindow;
 
                         vtxID selected = renderer->getInstanceIdOnClick(pixelIndex);
 
                         if (ImGui::GetIO().KeyShift)
                         {
-                            graph::Scene::get()->addNodesToSelection({ selected });
+							graph::Scene::get()->addNodesToSelection({selected});
                         }
                         else
                         {
-                            graph::Scene::get()->setSelected({ selected });
-
-                        }
+							graph::Scene::get()->setSelected({selected});
+						}
                     }
                 }
 
@@ -104,15 +104,15 @@ namespace vtx {
         {
             math::vec3f meanPivot = 0.0f;
             math::vec2f projectedMeanPivot;
-            for (const auto& instance: instances)
+			for (const auto& instance : instances)
             {
-                const math::vec3f pivot = instance->transform->globalTransform.p;
-                math::vec2f onScreenPivot = renderer->camera->project(pivot, true);
+				const math::vec3f pivot         = instance->transform->globalTransform.p;
+				math::vec2f       onScreenPivot = renderer->camera->project(pivot, true);
                 // add circle
                 vtxImGui::drawOrigin(onScreenPivot);
                 meanPivot += pivot;
             }
-            if(instances.size() > 1)
+			if (instances.size() > 1)
             {
 	            meanPivot /= instances.size();
                 projectedMeanPivot = renderer->camera->project(meanPivot, true);
@@ -123,11 +123,11 @@ namespace vtx {
                 projectedMeanPivot = renderer->camera->project(meanPivot, true);
             }
 
-            if(isTransforming)
+			if (isTransforming)
             {
-                const ImVec2 mousePos = ImGui::GetMousePos();
+				const ImVec2 mousePos  = ImGui::GetMousePos();
                 const ImVec2 windowPos = ImGui::GetWindowPos();
-                vtxImGui::drawDashedLine(projectedMeanPivot, { mousePos.x - windowPos.x, mousePos.y - windowPos.y });
+				vtxImGui::drawDashedLine(projectedMeanPivot, {mousePos.x - windowPos.x, mousePos.y - windowPos.y});
             }
         }
 
@@ -183,14 +183,15 @@ namespace vtx {
 
     void ViewportWindow::preRender()
     {
+		return;
         if (renderer->isSizeLocked)
         {
             const float titleBarHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2;
-            const int height = renderer->height + 10 + titleBarHeight;
-            const int width = renderer->width+10;
+			const int   height         = renderer->height + 10 + titleBarHeight;
+			const int   width          = renderer->width + 10;
 
             ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
-            windowFlags |= ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize;
+			//windowFlags |= ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize;
         }
     }
 }

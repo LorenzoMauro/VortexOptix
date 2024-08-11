@@ -10,18 +10,19 @@ namespace vtx::graph
 	class Group;
 	class Instance;
 
-	class Scene {
-	public:
 
+	class Scene
+	{
+	public:
 		static Scene* get();
 
 		static std::shared_ptr<SceneIndexManager> getSim();
-		void                      init();
+		void                                      init();
 
-		Scene(const Scene&) = delete;             // Disable copy constructor
-		Scene& operator=(const Scene&) = delete;  // Disable assignment operator
-		Scene(Scene&&) = delete;                  // Disable move constructor
-		Scene& operator=(Scene&&) = delete;       // Disable move assignment operator
+		Scene(const Scene&)            = delete; // Disable copy constructor
+		Scene& operator=(const Scene&) = delete; // Disable assignment operator
+		Scene(Scene&&)                 = delete; // Disable move constructor
+		Scene& operator=(Scene&&)      = delete; // Disable move assignment operator
 
 		std::set<vtxID>                     getSelectedInstancesIds() const;
 		std::set<std::shared_ptr<Instance>> getSelectedInstances() const;
@@ -31,15 +32,14 @@ namespace vtx::graph
 		void                                setSelected(const std::set<vtxID>& selected);
 		std::set<vtxID>                     getSelected() const;
 
-		std::shared_ptr<Group>						sceneRoot;
-		std::shared_ptr<Renderer>					renderer;
+		std::shared_ptr<Group>    sceneRoot;
+		std::shared_ptr<Renderer> renderer;
 
 	private:
 		Scene();
 		~Scene() = default;
 
-		std::set<vtxID>							selectedIds;
-		std::shared_ptr<SceneIndexManager>		sim; // Shared Pointer so that it can be passed to the nodes and make it outlive the scene to be available to the nodes destructor
+		std::set<vtxID>                    selectedIds;
+		std::shared_ptr<SceneIndexManager> sim; // Shared Pointer so that it can be passed to the nodes and make it outlive the scene to be available to the nodes destructor
 	};
 }
-

@@ -23,13 +23,15 @@ namespace vtx
 {
 	static Application* appInstance = nullptr;
 
-	bool isWindowMinimized(GLFWwindow* window) {
+	bool isWindowMinimized(GLFWwindow* window)
+	{
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		return (width == 0 || height == 0);
 	}
 
-	void Application::init() {
+	void Application::init()
+	{
 		appInstance = this;
 		initWindow();
 		Input::SetWindowHandle(glfwWindow);
@@ -61,7 +63,8 @@ namespace vtx
 		optix::init();
 	}
 
-	void Application::shutDown() {
+	void Application::shutDown()
+	{
 		//Last run!
 		shutDownOperations();
 		glfwDestroyWindow(glfwWindow);
@@ -75,14 +78,15 @@ namespace vtx
 		// your options object. Without knowing the structure of your options
 		// object or your application, here's a hypothetical example:
 
-		getOptions()->width = width;
+		getOptions()->width  = width;
 		getOptions()->height = height;
 
 		// You may also need to update your OpenGL viewport size here:
 		glViewport(0, 0, width, height);
 	}
 
-	void Application::initWindow() {
+	void Application::initWindow()
+	{
 		glfwSetErrorCallback(glfwErrorCallback);
 		if (!glfwInit())
 		{
@@ -91,13 +95,13 @@ namespace vtx
 		}
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-		glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);  // Set the window to start maximized
+		glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE); // Set the window to start maximized
 
 		// Get the primary monitor
-		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+		GLFWmonitor*       monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode* mode    = glfwGetVideoMode(monitor);
 
-		getOptions()->width = mode->width;
+		getOptions()->width  = mode->width;
 		getOptions()->height = mode->height;
 
 		glfwWindow = glfwCreateWindow(getOptions()->width, getOptions()->height, getOptions()->windowName.c_str(), nullptr, nullptr);
@@ -124,7 +128,7 @@ namespace vtx
 
 	void Application::dataLoop()
 	{
-		graph::Scene* scene = graph::Scene::get();
+		graph::Scene*                           scene    = graph::Scene::get();
 		const std::shared_ptr<graph::Renderer>& renderer = scene->renderer;
 		renderer->camera->onUpdate(timeStep);
 		//This step speed up the material computation, but is not really coherent with the rest of the code
@@ -145,9 +149,10 @@ namespace vtx
 		}
 	}
 
-	void Application::run() {
-		if(const std::shared_ptr<ExperimentsWindow> ew = windowManager->getWindow<ExperimentsWindow>();
-			ew!=nullptr && ew->performBatchExperiment)
+	void Application::run()
+	{
+		if (const std::shared_ptr<ExperimentsWindow> ew = windowManager->getWindow<ExperimentsWindow>();
+			ew != nullptr && ew->performBatchExperiment)
 		{
 			BatchExperimentRun();
 			ew->performBatchExperiment = false;
@@ -156,15 +161,14 @@ namespace vtx
 		{
 			standardRun();
 		}
-		
 	}
 
 	void Application::standardRun()
 	{
 		glfwPollEvents();
-		constexpr int maxTries = 3;
-		int tryCount = 0;
-		while(tryCount < maxTries)
+		constexpr int maxTries = 5;
+		int           tryCount = 0;
+		while (tryCount < maxTries)
 		{
 			try
 			{
@@ -179,7 +183,7 @@ namespace vtx
 			{
 				VTX_ERROR("Unknown exception in experiment");
 			}
-			if(const auto& renderer = graph::Scene::get()->renderer; renderer->waveFrontIntegrator.network.settings.active == true)
+			if (const auto& renderer = graph::Scene::get()->renderer; renderer->waveFrontIntegrator.network.settings.active == true)
 			{
 				renderer->waveFrontIntegrator.network.reset();
 			}
@@ -221,9 +225,9 @@ namespace vtx
 		}
 		windowManager->removeClosedWindows();
 		const auto time = static_cast<float>(glfwGetTime());
-		frameTime = time - lastFrameTime;
-		timeStep = std::min(frameTime, 0.0333f);
-		lastFrameTime = time;
+		frameTime       = time - lastFrameTime;
+		timeStep        = std::min(frameTime, 0.0333f);
+		lastFrameTime   = time;
 		iteration += 1;
 	}
 
@@ -255,9 +259,9 @@ namespace vtx
 			}
 			windowManager->removeClosedWindows();
 			const auto time = static_cast<float>(glfwGetTime());
-			frameTime = time - lastFrameTime;
-			timeStep = std::min(frameTime, 0.0333f);
-			lastFrameTime = time;
+			frameTime       = time - lastFrameTime;
+			timeStep        = std::min(frameTime, 0.0333f);
+			lastFrameTime   = time;
 			iteration += 1;
 		}
 	}
@@ -272,9 +276,9 @@ namespace vtx
 	{
 		LoadingSaving::get().setManualLoad(filePath);
 	}
+
 	Application* Application::get()
 	{
 		return appInstance;
 	}
 }
-

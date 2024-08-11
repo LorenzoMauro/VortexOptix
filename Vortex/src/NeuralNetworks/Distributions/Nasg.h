@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef NASG_H
 #define NASG_H
 
@@ -220,7 +220,7 @@ namespace vtx::distribution
 			const torch::Tensor& a);
 
 
-		static torch::Tensor finalizeRawParams(const torch::Tensor& rawParams,const network::config::DistributionType& type);
+		static torch::Tensor finalizeRawParams(const torch::Tensor& rawParams, const network::config::DistributionType& type);
 
 		static std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> Nasg::splitParams(const torch::Tensor& params);
 
@@ -239,26 +239,24 @@ namespace vtx::distribution
 		);
 
 		static torch::Tensor prob(
-			const torch::Tensor&             sample,
-			const torch::Tensor&             params
+			const torch::Tensor& sample,
+			const torch::Tensor& params
 		);
 
 		static torch::Tensor sample(
-			const torch::Tensor&             params
+			const torch::Tensor& params
 		);
 
 		static void setGraphData(
 			const torch::Tensor& params,
 			const torch::Tensor& mixtureWeights,
 			network::GraphsData& graphData,
-			const bool isTraining,
-			const int depth = 0
+			const bool           isTraining,
+			const int            depth = 0
 		);
 #endif
-
 };
 }
-
 
 
 #endif

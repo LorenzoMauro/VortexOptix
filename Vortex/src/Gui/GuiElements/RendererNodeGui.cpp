@@ -1,4 +1,4 @@
-﻿#include "Gui/GuiProvider.h"
+#include "Gui/GuiProvider.h"
 
 #include "imgui.h"
 #include "Core/Application.h"
@@ -63,7 +63,7 @@ namespace vtx::gui
 			if (vtxImGui::halfSpaceWidget("White Point", vtxImGui::colorPicker, (hiddenLabel + "_White Point").c_str(), &settings.whitePoint.x))
 			{
 				settings.invWhitePoint = 1.0f / settings.whitePoint;
-				settings.isUpdated = true;
+				settings.isUpdated     = true;
 			}
 			if (vtxImGui::halfSpaceWidget("Color balance", vtxImGui::colorPicker, (hiddenLabel + "_Color balance").c_str(), &settings.colorBalance.x))
 			{
@@ -83,7 +83,7 @@ namespace vtx::gui
 			}
 			if (vtxImGui::halfSpaceWidget("Gamma", ImGui::DragFloat, (hiddenLabel + "_Gamma").c_str(), &settings.gamma, 0.01f, 0.1f, 5.0f, "%.3f", 0))
 			{
-				settings.invGamma = 1.0f / settings.gamma;
+				settings.invGamma  = 1.0f / settings.gamma;
 				settings.isUpdated = true;
 			}
 		}
@@ -159,7 +159,6 @@ namespace vtx::gui
 			{
 				settings.isUpdated = true;
 			}
-
 		}
 
 		return settings.isUpdated;
@@ -216,7 +215,6 @@ namespace vtx::gui
 			vtxImGui::halfSpaceWidget("Neural Prepare Dataset		", vtxImGui::booleanText, "%.2f ms", statistics.neuralShuffleDataset);
 			vtxImGui::halfSpaceWidget("Neural Network Train			", vtxImGui::booleanText, "%.2f ms", statistics.neuralNetworkTrain);
 			vtxImGui::halfSpaceWidget("Neural Network Infer			", vtxImGui::booleanText, "%.2f ms", statistics.neuralNetworkInfer);
-
 		}
 	}
 
@@ -228,10 +226,11 @@ namespace vtx::gui
 		{
 			vtxImGui::halfSpaceWidget("Samples Per Pixels:", vtxImGui::booleanText, "%d", settings.iteration);
 
+
 			if (vtxImGui::halfSpaceWidget("Max Bounces", ImGui::DragInt, (hiddenLabel + "_Max Bounces").c_str(), &(settings.maxBounces), 1.0f, 1, 1000000, "%d", 0))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
 			}
 			if (vtxImGui::halfSpaceWidget("Max Samples", ImGui::DragInt, (hiddenLabel + "_Max Samples").c_str(), &settings.maxSamples, 1.0f, 1, 1000000, "%d", 0))
 			{
@@ -240,12 +239,12 @@ namespace vtx::gui
 			if (vtxImGui::halfSpaceWidget("Accumulate", ImGui::Checkbox, (hiddenLabel + "_Accumulate").c_str(), &settings.accumulate))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
 			}
 			if (vtxImGui::halfSpaceWidget("Sampling Technique", (ComboFuncType)ImGui::Combo, (hiddenLabel + "_Sampling Technique").c_str(), reinterpret_cast<int*>(&settings.samplingTechnique), samplingTechniqueNames, S_COUNT, -1))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
 			}
 
 			restartRendering |= quadrantSettingsEditorGui(settings.quadrantsSettings);
@@ -258,17 +257,17 @@ namespace vtx::gui
 			if (vtxImGui::halfSpaceWidget("Min Clip", ImGui::DragFloat, (hiddenLabel + "_Min Clip").c_str(), &settings.minClamp, 0.01, 0, 1000, "%.3f", 0))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
 			}
 			if (vtxImGui::halfSpaceWidget("Max Clip", ImGui::DragFloat, (hiddenLabel + "_Max Clip").c_str(), &settings.maxClamp, 1, 0, 10000, "%.3f", 0))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
 			}
 			if (vtxImGui::halfSpaceWidget("Russian Roulette", ImGui::Checkbox, (hiddenLabel + "_Russian Roulette").c_str(), &settings.useRussianRoulette))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
 			}
 			if (vtxImGui::halfSpaceWidget("Separate Thread", ImGui::Checkbox, (hiddenLabel + "_Separate Thread").c_str(), &settings.runOnSeparateThread))
 			{
@@ -284,7 +283,6 @@ namespace vtx::gui
 		const float availableWidth = ImGui::GetContentRegionAvail().x;
 		if (ImGui::CollapsingHeader("Renderer"))
 		{
-
 			ImGui::Indent();
 			ImGui::PushItemWidth(availableWidth);
 			vtxImGui::halfSpaceWidget("Node Id", ImGui::Text, std::to_string(renderNode->getUID()).c_str());
@@ -298,7 +296,7 @@ namespace vtx::gui
 
 			const bool runOnSeparateThread = renderNode->settings.runOnSeparateThread;
 			restartRendering |= drawEditGui(renderNode->settings);
-			if(runOnSeparateThread != renderNode->settings.runOnSeparateThread)
+			if (runOnSeparateThread != renderNode->settings.runOnSeparateThread)
 			{
 				renderNode->resizeGlBuffer = true;
 			}
@@ -311,7 +309,7 @@ namespace vtx::gui
 
 			restartRendering |= adaptiveSettingsEditorGui(renderNode->settings.adaptiveSamplingSettings);
 
-			if(renderNode->waveFrontIntegrator.network.settings.active && renderNode->settings.adaptiveSamplingSettings.active)
+			if (renderNode->waveFrontIntegrator.network.settings.active && renderNode->settings.adaptiveSamplingSettings.active)
 			{
 				//	CURRENTLY NOT SUPPORTED
 				renderNode->settings.adaptiveSamplingSettings.active = false;
@@ -332,7 +330,6 @@ namespace vtx::gui
 			drawDisplayGui(renderNode->statistics);
 
 			ImGui::PopItemWidth();
-
 
 
 			if (renderNode->waveFrontIntegrator.settings.active)
@@ -361,11 +358,8 @@ namespace vtx::gui
 			{
 				renderNode->restart();
 			}
-
 		}
 
 		return false;
-		
     }
 }
-

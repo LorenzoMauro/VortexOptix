@@ -112,7 +112,7 @@ namespace vtx {
 
 		options.networkSettings = ExperimentsManager::getBestGuess();
 		options.networkSettings.isUpdated = true;
-		options.networkSettings.active = false;
+		options.networkSettings.active    = false;
 
 
 		////////////////////////////////////////////////////////////////////////////////////

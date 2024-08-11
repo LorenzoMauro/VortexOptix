@@ -102,8 +102,6 @@ namespace vtx
 			gui::gridPlot({ ErrorPlot });
 		}
 	}
-
-
 	void ExperimentsWindow::toolBarContent()
 	{
 

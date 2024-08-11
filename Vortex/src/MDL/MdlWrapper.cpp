@@ -165,14 +165,19 @@ namespace vtx::mdl
 		// Used for various configurable operations and for querying warnings and error messages.
 		// It is possible to have more than one, in order to use different settings.
 		state.context = state.factory->create_execution_context();
-
-		state.context->set_option("internal_space", "coordinate_world");  // equals default
-		state.context->set_option("bundle_resources", false);             // equals default
-		state.context->set_option("meters_per_scene_unit", 1.0f);         // equals default
-		state.context->set_option("mdl_wavelength_min", 380.0f);          // equals default
-		state.context->set_option("mdl_wavelength_max", 780.0f);          // equals default
+		state.result = state.context->set_option("internal_space", "coordinate_world");  // equals default
+		VTX_ASSERT_CLOSE(state.result == 0, "Error with number of texture spaces");
+		state.result = state.context->set_option("bundle_resources", false);             // equals default
+		VTX_ASSERT_CLOSE(state.result == 0, "Error with number of texture spaces");
+		state.result = state.context->set_option("meters_per_scene_unit", 1.0f);         // equals default
+		VTX_ASSERT_CLOSE(state.result == 0, "Error with number of texture spaces");
+		state.result = state.context->set_option("wavelength_min", 380.0f);          // equals default
+		VTX_ASSERT_CLOSE(state.result == 0, "Error with number of texture spaces");
+		state.result = state.context->set_option("wavelength_max", 780.0f);          // equals default
+		VTX_ASSERT_CLOSE(state.result == 0, "Error with number of texture spaces");
 		// If true, the "geometry.normal" field will be applied to the MDL state prior to evaluation of the given DF.
-		state.context->set_option("include_geometry_normal", true);       // equals default 
+		state.result = state.context->set_option("include_geometry_normal", true);       // equals default 
+		VTX_ASSERT_CLOSE(state.result == 0, "Error with number of texture spaces");
 
 		const Handle<IMdl_backend_api> mdl_backend_api(state.neuray->get_api_component<IMdl_backend_api>());
 

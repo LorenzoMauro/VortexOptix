@@ -27,9 +27,9 @@ namespace vtx::graph
 		settings(),
 		waveFrontIntegrator(&settings)
 	{
-		camera = ops::standardCamera();
+		camera    = ops::standardCamera();
 		sceneRoot = ops::createNode<Group>();
-		settings = getOptions()->rendererSettings;
+		settings  = getOptions()->rendererSettings;
 
 		//drawFrameBuffer.setSize(width, height);
 		//drawFrameBuffer.bind();
@@ -50,9 +50,9 @@ namespace vtx::graph
 	std::vector<std::shared_ptr<Node>> Renderer::getChildren() const
 	{
 		std::vector<std::shared_ptr<Node>> children;
-		camera? children.push_back(camera) : void();
-		sceneRoot? children.push_back(sceneRoot) : void();
-		environmentLight? children.push_back(environmentLight) : void();
+		camera ? children.push_back(camera) : void();
+		sceneRoot ? children.push_back(sceneRoot) : void();
+		environmentLight ? children.push_back(environmentLight) : void();
 		return children;
 	}
 
@@ -65,16 +65,18 @@ namespace vtx::graph
 	{
 		const gBufferHistory* gBufferPtr      = onDeviceData->frameBufferData.resourceBuffers.gBufferData.castedPointer<gBufferHistory>();
 		const gBufferHistory* pixelGBufferPtr = gBufferPtr + pixelID;
-		const auto* pixelDataPtr = reinterpret_cast<const vtxID*>(pixelGBufferPtr);
+		const auto*           pixelDataPtr    = reinterpret_cast<const vtxID*>(pixelGBufferPtr);
 
 		vtxID hostValue;
 		cudaMemcpy(&hostValue, pixelDataPtr, sizeof(vtxID), cudaMemcpyDeviceToHost);
 		return graph::Scene::getSim()->UIDfromTID(NT_INSTANCE,hostValue);
 	}
 
-	bool Renderer::isReady(const bool setBusy) {
+	bool Renderer::isReady(const bool setBusy)
+	{
 		std::unique_lock<std::mutex> lock(threadData.renderMutex, std::defer_lock);
-		if (lock.try_lock()) {
+		if (lock.try_lock())
+		{
 			return true;
 			//if (!threadData.renderThreadBusy) {
 			//	if (setBusy) {
@@ -88,7 +90,8 @@ namespace vtx::graph
 
 	void Renderer::threadedRender()
 	{
-		if (isReady()) {
+		if (isReady())
+		{
 			threadData.rendererBusy = true;
 			threadData.renderCondition.notify_one();
 		}
@@ -99,10 +102,11 @@ namespace vtx::graph
 		settings.iteration = 0;
 		settings.isUpdated = true;
 	}
+
 	void Renderer::prepare()
 	{
-		
 	}
+
 	void Renderer::render()
 	{
 		onDeviceData->sync();
@@ -121,11 +125,11 @@ namespace vtx::graph
 		{
 			return;
 		}
-		const LaunchParams& launchParams = onDeviceData->launchParamsData.getHostImage();
+		const LaunchParams& launchParams       = onDeviceData->launchParamsData.getHostImage();
 		const LaunchParams* launchParamsDevice = onDeviceData->launchParamsData.getDeviceImage();
-		const size_t launchParamsSize = onDeviceData->launchParamsData.imageBuffer.bytesSize();
-		const int fbWidth = launchParams.frameBuffer.frameSize.x;
-		const int fbHeight = launchParams.frameBuffer.frameSize.y;
+		const size_t        launchParamsSize   = onDeviceData->launchParamsData.imageBuffer.bytesSize();
+		const int           fbWidth            = launchParams.frameBuffer.frameSize.x;
+		const int           fbHeight           = launchParams.frameBuffer.frameSize.y;
 
 		if (fbWidth == 0 || fbHeight == 0)
 		{
@@ -145,24 +149,23 @@ namespace vtx::graph
 				noiseComputation(launchParamsDevice, settings.adaptiveSamplingSettings.noiseKernelSize, settings.adaptiveSamplingSettings.albedoNormalNoiseInfluence);
 			}
 			cudaEventRecord(events.second);
-
 		}
 
 		{
 			const std::pair<cudaEvent_t, cudaEvent_t> events = GetProfilerEvents(eventNames[R_TRACE]);
 			cudaEventRecord(events.first);
 
-			if (waveFrontIntegrator.settings.active && launchParams.queues.queueCounters!=nullptr)
+			if (waveFrontIntegrator.settings.active && launchParams.queues.queueCounters != nullptr)
 			{
 				waveFrontIntegrator.render();
 			}
 			else
 			{
-				const optix::State& state = *(optix::getState());
-				const OptixPipeline& pipeline = optix::getRenderingPipeline()->getPipeline();
-				const OptixShaderBindingTable& sbt = optix::getRenderingPipeline()->getSbt();
+				const optix::State&            state    = *(optix::getState());
+				const OptixPipeline&           pipeline = optix::getRenderingPipeline()->getPipeline();
+				const OptixShaderBindingTable& sbt      = optix::getRenderingPipeline()->getSbt();
 
-				const auto result = optixLaunch(/*! pipeline we're launching launch: */
+				const auto result = optixLaunch( /*! pipeline we're launching launch: */
 					pipeline, state.stream,
 					/*! parameters and SBT */
 					(CUdeviceptr)launchParamsDevice,
@@ -179,7 +182,6 @@ namespace vtx::graph
 		}
 
 		{
-
 			const std::pair<cudaEvent_t, cudaEvent_t> events = GetProfilerEvents(eventNames[R_POSTPROCESSING]);
 			cudaEventRecord(events.first);
 
@@ -195,8 +197,8 @@ namespace vtx::graph
 			if (settings.denoiserSettings.active && settings.iteration > settings.denoiserSettings.denoiserStart)
 			{
 				CUDABuffer& denoiserRadianceInput = isFireflyRemovalActive ? onDeviceData->frameBufferData.resourceBuffers.fireflyRemoval : onDeviceData->frameBufferData.resourceBuffers.hdriRadiance;
-				CUDABuffer& albedoBuffer = onDeviceData->frameBufferData.resourceBuffers.albedoNormalized;
-				CUDABuffer& normalBuffer = onDeviceData->frameBufferData.resourceBuffers.normalNormalized;
+				CUDABuffer& albedoBuffer          = onDeviceData->frameBufferData.resourceBuffers.albedoNormalized;
+				CUDABuffer& normalBuffer          = onDeviceData->frameBufferData.resourceBuffers.normalNormalized;
 				optix::getState()->denoiser.setInputs(denoiserRadianceInput, albedoBuffer, normalBuffer);
 				beauty = optix::getState()->denoiser.denoise(settings.denoiserSettings.denoiserBlend);
 			}
@@ -208,11 +210,11 @@ namespace vtx::graph
 				const std::set<vtxID> uidSelectedInstances = Scene::get()->getSelectedInstancesIds();
 				if (!uidSelectedInstances.empty())
 				{
-					auto*                    gBuffer              = onDeviceData->frameBufferData.resourceBuffers.gBuffer.castedPointer<float>();
-					auto*                    outputBuffer         = onDeviceData->frameBufferData.resourceBuffers.cudaOutputBuffer.castedPointer<math::vec4f>();
-					CUDABuffer               edgeMapBuffer        = onDeviceData->frameBufferData.resourceBuffers.edgeMapBuffer;
-					CUDABuffer               selectedIdsBuffer    = onDeviceData->frameBufferData.resourceBuffers.selectedIdsBuffer;
-					std::vector<float>       typeIds;
+					auto*              gBuffer           = onDeviceData->frameBufferData.resourceBuffers.gBuffer.castedPointer<float>();
+					auto*              outputBuffer      = onDeviceData->frameBufferData.resourceBuffers.cudaOutputBuffer.castedPointer<math::vec4f>();
+					CUDABuffer         edgeMapBuffer     = onDeviceData->frameBufferData.resourceBuffers.edgeMapBuffer;
+					CUDABuffer         selectedIdsBuffer = onDeviceData->frameBufferData.resourceBuffers.selectedIdsBuffer;
+					std::vector<float> typeIds;
 					typeIds.reserve(uidSelectedInstances.size());
 					for (const vtxID uid : uidSelectedInstances)
 					{
@@ -232,8 +234,9 @@ namespace vtx::graph
 		settings.isUpdated = true;
 	}
 
-	void Renderer::resize(const int _width, const int _height) {
-		if(isSizeLocked)
+	void Renderer::resize(const int _width, const int _height)
+	{
+		if (isSizeLocked)
 		{
 			return;
 		}
@@ -241,17 +244,19 @@ namespace vtx::graph
 		{
 			return;
 		}
-		if (width == _width && height == _height) {
+		if (width == _width && height == _height)
+		{
 			camera->resize(width, height);
 			return;
 		}
-		width = _width;
-		height = _height;
+		width   = _width;
+		height  = _height;
 		resized = true;
 		camera->resize(width, height);
 	}
 
-	void Renderer::copyToGl() {
+	void Renderer::copyToGl()
+	{
 		// Update the GL buffer here
 		//CUDA_SYNC_CHECK();
 		const std::pair<cudaEvent_t, cudaEvent_t> events = GetProfilerEvents(eventNames[R_DISPLAY]);
@@ -259,9 +264,9 @@ namespace vtx::graph
 		const LaunchParams& launchParams = onDeviceData->launchParamsData.getHostImage();
 
 		const CUdeviceptr& buffer = launchParams.frameBuffer.outputBuffer;
-		const int& width = launchParams.frameBuffer.frameSize.x;
-		const int& height = launchParams.frameBuffer.frameSize.y;
-		const InteropUsage usage = settings.runOnSeparateThread ? InteropUsage::MultiThreaded : InteropUsage::SingleThreaded;
+		const int&         width  = launchParams.frameBuffer.frameSize.x;
+		const int&         height = launchParams.frameBuffer.frameSize.y;
+		const InteropUsage usage  = settings.runOnSeparateThread ? InteropUsage::MultiThreaded : InteropUsage::SingleThreaded;
 		interopDraw.prepare(width, height, 4, usage);
 		interopDraw.copyToGlBuffer(buffer, width, height);
 		std::swap(interopDraw, interopDisplay);
@@ -277,38 +282,37 @@ namespace vtx::graph
 		sharedContext = glfwCreateWindow(1, 1, "Shared Context", nullptr, window);
 	}
 
-	GlFrameBuffer Renderer::getFrame() {
+	GlFrameBuffer Renderer::getFrame()
+	{
 		return interopDisplay.glFrameBuffer;
 	}
 
 	void Statistics::update(const std::shared_ptr<graph::Renderer>& renderNode)
 	{
-		const CudaEventTimes cuTimes = getCudaEventTimes();
-		const int actualLaunches = getLaunches();
-		totTimeSeconds = (cuTimes.trace + cuTimes.noiseComputation + cuTimes.postProcessing + cuTimes.display) / 1000.0f;
-		samplesPerPixel = renderNode->settings.iteration;
-		sppPerSecond = (float)(renderNode->width * renderNode->height * actualLaunches) / totTimeSeconds;
-		frameTime = totTimeSeconds / (float)actualLaunches;
-		fps = 1.0f / frameTime;
-		totTimeInternal = renderNode->timer.elapsedMillis() / 1000.0f;
-		internalFps = (float)renderNode->settings.iteration / totTimeInternal;
-		const float factor = 1.0f / (float)actualLaunches;
-		rendererNoise = factor * cuTimes.noiseComputation;
-		rendererTrace = factor * cuTimes.trace;
-		rendererPost = factor * cuTimes.postProcessing;
-		rendererDisplay = factor * cuTimes.display;
-		waveFrontGenerateRay = factor * cuTimes.genCameraRay;
-		waveFrontTrace = factor * cuTimes.traceRadianceRay;
-		waveFrontShade = factor * cuTimes.shadeRay;
-		waveFrontShadow = factor * cuTimes.shadowRay;
-		waveFrontEscaped = factor * cuTimes.handleEscapedRay;
-		waveFrontAccumulate = factor * cuTimes.accumulateRay;
-		waveFrontReset = factor * cuTimes.reset;
-		waveFrontFetchQueueSize = factor * cuTimes.fetchQueueSize;
-		neuralShuffleDataset = factor * (cuTimes.nnPrepareDataset + cuTimes.nnFillPath);
-		neuralNetworkTrain = factor * cuTimes.nnTrain;
-		neuralNetworkInfer = factor * cuTimes.nnInfer;
+		const CudaEventTimes cuTimes        = getCudaEventTimes();
+		const int            actualLaunches = getLaunches();
+		totTimeSeconds                      = (cuTimes.trace + cuTimes.noiseComputation + cuTimes.postProcessing + cuTimes.display) / 1000.0f;
+		samplesPerPixel                     = renderNode->settings.iteration;
+		sppPerSecond                        = (float)(renderNode->width * renderNode->height * actualLaunches) / totTimeSeconds;
+		frameTime                           = totTimeSeconds / (float)actualLaunches;
+		fps                                 = 1.0f / frameTime;
+		totTimeInternal                     = renderNode->timer.elapsedMillis() / 1000.0f;
+		internalFps                         = (float)renderNode->settings.iteration / totTimeInternal;
+		const float factor                  = 1.0f / (float)actualLaunches;
+		rendererNoise                       = factor * cuTimes.noiseComputation;
+		rendererTrace                       = factor * cuTimes.trace;
+		rendererPost                        = factor * cuTimes.postProcessing;
+		rendererDisplay                     = factor * cuTimes.display;
+		waveFrontGenerateRay                = factor * cuTimes.genCameraRay;
+		waveFrontTrace                      = factor * cuTimes.traceRadianceRay;
+		waveFrontShade                      = factor * cuTimes.shadeRay;
+		waveFrontShadow                     = factor * cuTimes.shadowRay;
+		waveFrontEscaped                    = factor * cuTimes.handleEscapedRay;
+		waveFrontAccumulate                 = factor * cuTimes.accumulateRay;
+		waveFrontReset                      = factor * cuTimes.reset;
+		waveFrontFetchQueueSize             = factor * cuTimes.fetchQueueSize;
+		neuralShuffleDataset                = factor * (cuTimes.nnPrepareDataset + cuTimes.nnFillPath);
+		neuralNetworkTrain                  = factor * cuTimes.nnTrain;
+		neuralNetworkInfer                  = factor * cuTimes.nnInfer;
 	}
-
 }
-

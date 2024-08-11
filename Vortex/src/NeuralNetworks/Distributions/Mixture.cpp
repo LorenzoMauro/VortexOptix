@@ -5,7 +5,6 @@
 
 namespace vtx::distribution
 {
-
     torch::Tensor Mixture::finalizeParams(torch::Tensor& mixtureParameters, const network::config::DistributionType& type)
     {
         if (type == network::config::DistributionType::D_SPHERICAL_GAUSSIAN)
@@ -28,7 +27,7 @@ namespace vtx::distribution
     {
         // expand x if not 3D to match the Batch Size x Mixture Size x x last dim
 
-		const torch::Tensor expandedX = x.unsqueeze(1).expand({ -1, mixtureParams.size(1), -1 });
+		const torch::Tensor expandedX = x.unsqueeze(1).expand({-1, mixtureParams.size(1), -1});
         TRACE_TENSOR(expandedX);
         torch::Tensor prob;
         if (type == network::config::DistributionType::D_SPHERICAL_GAUSSIAN)
@@ -47,7 +46,7 @@ namespace vtx::distribution
         // Weighing the probability of each mixture
         // mixtureWeights is in the shape Batch Size x Mixture Size
         torch::Tensor weightedP = prob * mixtureWeights.unsqueeze(-1);
-        weightedP = weightedP.sum(1);
+		weightedP               = weightedP.sum(1);
         TRACE_TENSOR(weightedP);
         return weightedP;
     }
@@ -58,8 +57,8 @@ namespace vtx::distribution
         const torch::Tensor selectedMixture = multinomial(mixtureWeights, 1);
 
         // Expand the selectedMixture for compatibility with reshapedMixtureParameters
-        int distributionParamsCount = mixtureParams.size(mixtureParams.dim() - 1);
-        const torch::Tensor expandedSelectedMixture = selectedMixture.unsqueeze(-1).expand({ -1,  -1, distributionParamsCount });
+		int                 distributionParamsCount = mixtureParams.size(mixtureParams.dim() - 1);
+		const torch::Tensor expandedSelectedMixture = selectedMixture.unsqueeze(-1).expand({-1, -1, distributionParamsCount});
 
         // Gather the selected parameters
         const torch::Tensor selectedParameters = mixtureParams.gather(1, expandedSelectedMixture).squeeze(1);
@@ -84,7 +83,7 @@ namespace vtx::distribution
         torch::Tensor prob = Mixture::prob(sampleTensor, mixtureParams, mixtureWeights, type);
         TRACE_TENSOR(sampleTensor);
         TRACE_TENSOR(prob);
-        return { sampleTensor, prob };
+		return {sampleTensor, prob};
     }
 
     void Mixture::setGraphData(const network::config::DistributionType type, const torch::Tensor& params, const torch::Tensor& mixtureWeights, network::GraphsData& graphData, const bool isTraining, const int depth)
@@ -102,5 +101,4 @@ namespace vtx::distribution
 			VTX_ERROR("Unknown distribution type");
 		}
     }
-
 }

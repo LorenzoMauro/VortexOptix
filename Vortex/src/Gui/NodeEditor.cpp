@@ -19,7 +19,8 @@ namespace vtx::gui
 		}
 		else
 		{
-			auto hue2rgb = [](const float p, const float q, float t) {
+			auto hue2rgb = [](const float p, const float q, float t)
+			{
 				if (t < 0.f) t += 1.f;
 				if (t > 1.f) t -= 1.f;
 				if (t < 1.f / 6.f) return p + (q - p) * 6.f * t;
@@ -47,88 +48,114 @@ namespace vtx::gui
 	const std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>& colorByNodeType(const graph::NodeType type)
 	{
 		// Check if color is already computed
-		if (nodeColors.find(type) != nodeColors.end()) {
+		if (nodeColors.find(type) != nodeColors.end())
+		{
 			return nodeColors[type];
 		}
 
 
-		constexpr auto darkGrey  = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
-		constexpr auto lightGrey = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-		constexpr auto accent	 = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-		constexpr auto super     = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
-		constexpr float fixedSaturation = 0.4f;  // 60%
+		constexpr auto  darkGrey        = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+		constexpr auto  lightGrey       = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
+		constexpr auto  accent          = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+		constexpr auto  super           = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
+		constexpr float fixedSaturation = 0.4f; // 60%
 
 		// Define hue ranges
-		constexpr std::pair<float, float> hueRangeViolets = { 0.75f, 1.0f };  // Including the wrap-around nature of hue.
-		constexpr std::pair<float, float> hueRangeOrange = { 0.04f, 0.16f };
-		constexpr std::pair<float, float> hueRangeGreen = { 0.16f, 0.43f };
-		constexpr std::pair<float, float> hueRangeBlue = { 0.43f, 0.75f };
+		constexpr std::pair<float, float> hueRangeViolets = {0.75f, 1.0f}; // Including the wrap-around nature of hue.
+		constexpr std::pair<float, float> hueRangeOrange  = {0.04f, 0.16f};
+		constexpr std::pair<float, float> hueRangeGreen   = {0.16f, 0.43f};
+		constexpr std::pair<float, float> hueRangeBlue    = {0.43f, 0.75f};
 
 		// Assigning hue ranges to groups
 		constexpr std::pair<float, float> hueRendering = hueRangeViolets;
-		constexpr std::pair<float, float> hueMeshes = hueRangeOrange;
-		constexpr std::pair<float, float> hueLights = hueRangeBlue;
+		constexpr std::pair<float, float> hueMeshes    = hueRangeOrange;
+		constexpr std::pair<float, float> hueLights    = hueRangeBlue;
 		constexpr std::pair<float, float> hueMaterials = hueRangeGreen;
 
 		constexpr int numRenderingNodes = 2;  // Adjust this to the correct number of nodes for the rendering group
-		constexpr int numMeshNodes = 4;       // Similarly, adjust for the mesh group
-		constexpr int numLightNodes = 3;      // Adjust for the light group
-		constexpr int numMaterialNodes = 15;   // Adjust for the material group
+		constexpr int numMeshNodes      = 4;  // Similarly, adjust for the mesh group
+		constexpr int numLightNodes     = 3;  // Adjust for the light group
+		constexpr int numMaterialNodes  = 15; // Adjust for the material group
 
 		// Calculate hue increments for each group
 		constexpr float hueIncrementRendering = (hueRendering.second - hueRendering.first) / numRenderingNodes;
-		constexpr float hueIncrementMeshes = (hueMeshes.second - hueMeshes.first) / numMeshNodes;
-		constexpr float hueIncrementLights = (hueLights.second - hueLights.first) / numLightNodes;
+		constexpr float hueIncrementMeshes    = (hueMeshes.second - hueMeshes.first) / numMeshNodes;
+		constexpr float hueIncrementLights    = (hueLights.second - hueLights.first) / numLightNodes;
 		constexpr float hueIncrementMaterials = (hueMaterials.second - hueMaterials.first) / numMaterialNodes;
 
-		float hue = 0.0f;  // Default hue
+		float hue = 0.0f; // Default hue
 		switch (type)
 		{
-			//Geometry
-		case graph::NT_GROUP:				hue = hueMeshes.first + 0 * hueIncrementMeshes; break;
-		case graph::NT_INSTANCE:			hue = hueMeshes.first + 1 * hueIncrementMeshes; break;
-		case graph::NT_MESH:				hue = hueMeshes.first + 2 * hueIncrementMeshes; break;
-		case graph::NT_TRANSFORM:			hue = hueMeshes.first + 3 * hueIncrementMeshes; break;
-			//Lights
-		case graph::NT_LIGHT:				hue = hueLights.first + 0 * hueIncrementLights; break;
-		case graph::NT_MESH_LIGHT:			hue = hueLights.first + 1 * hueIncrementLights; break;
-		case graph::NT_ENV_LIGHT:			hue = hueLights.first + 2 * hueIncrementLights; break;
-			//Rendering
-		case graph::NT_CAMERA:				hue = hueRendering.first + 0 * hueIncrementRendering; break;
-		case graph::NT_RENDERER:			hue = hueRendering.first + 1 * hueIncrementRendering; break;
-			//Shaders
-		case graph::NT_MATERIAL:				hue = hueMaterials.first + 0 * hueIncrementMaterials; break;
-		case graph::NT_MDL_TEXTURE:				hue = hueMaterials.first + 1 * hueIncrementMaterials; break;
-		case graph::NT_MDL_BSDF:				hue = hueMaterials.first + 2 * hueIncrementMaterials; break;
-		case graph::NT_MDL_LIGHTPROFILE:		hue = hueMaterials.first + 3 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_DF:				hue = hueMaterials.first + 4 * hueIncrementMaterials; break;
+		//Geometry
+		case graph::NT_GROUP: hue = hueMeshes.first + 0 * hueIncrementMeshes;
+			break;
+		case graph::NT_INSTANCE: hue = hueMeshes.first + 1 * hueIncrementMeshes;
+			break;
+		case graph::NT_MESH: hue = hueMeshes.first + 2 * hueIncrementMeshes;
+			break;
+		case graph::NT_TRANSFORM: hue = hueMeshes.first + 3 * hueIncrementMeshes;
+			break;
+		//Lights
+		case graph::NT_LIGHT: hue = hueLights.first + 0 * hueIncrementLights;
+			break;
+		case graph::NT_MESH_LIGHT: hue = hueLights.first + 1 * hueIncrementLights;
+			break;
+		case graph::NT_ENV_LIGHT: hue = hueLights.first + 2 * hueIncrementLights;
+			break;
+		//Rendering
+		case graph::NT_CAMERA: hue = hueRendering.first + 0 * hueIncrementRendering;
+			break;
+		case graph::NT_RENDERER: hue = hueRendering.first + 1 * hueIncrementRendering;
+			break;
+		//Shaders
+		case graph::NT_MATERIAL: hue = hueMaterials.first + 0 * hueIncrementMaterials;
+			break;
+		case graph::NT_MDL_TEXTURE: hue = hueMaterials.first + 1 * hueIncrementMaterials;
+			break;
+		case graph::NT_MDL_BSDF: hue = hueMaterials.first + 2 * hueIncrementMaterials;
+			break;
+		case graph::NT_MDL_LIGHTPROFILE: hue = hueMaterials.first + 3 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_DF: hue = hueMaterials.first + 4 * hueIncrementMaterials;
+			break;
 		case graph::NT_PRINCIPLED_MATERIAL:
-		case graph::NT_SHADER_MATERIAL:			hue = hueMaterials.first + 5 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_SURFACE:			hue = hueMaterials.first + 6 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_IMPORTED:			hue = hueMaterials.first + 7 * hueIncrementMaterials; break;
-		case graph::NT_GET_CHANNEL:				hue = hueMaterials.first + 8 * hueIncrementMaterials; break;
-		case graph::NT_NORMAL_MIX:				hue = hueMaterials.first + 9 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_COORDINATE:		hue = hueMaterials.first + 10 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_NORMAL_TEXTURE:	hue = hueMaterials.first + 11 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_MONO_TEXTURE:		hue = hueMaterials.first + 12 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_COLOR_TEXTURE:	hue = hueMaterials.first + 13 * hueIncrementMaterials; break;
-		case graph::NT_SHADER_BUMP_TEXTURE:		hue = hueMaterials.first + 14 * hueIncrementMaterials; break;
+		case graph::NT_SHADER_MATERIAL: hue = hueMaterials.first + 5 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_SURFACE: hue = hueMaterials.first + 6 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_IMPORTED: hue = hueMaterials.first + 7 * hueIncrementMaterials;
+			break;
+		case graph::NT_GET_CHANNEL: hue = hueMaterials.first + 8 * hueIncrementMaterials;
+			break;
+		case graph::NT_NORMAL_MIX: hue = hueMaterials.first + 9 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_COORDINATE: hue = hueMaterials.first + 10 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_NORMAL_TEXTURE: hue = hueMaterials.first + 11 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_MONO_TEXTURE: hue = hueMaterials.first + 12 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_COLOR_TEXTURE: hue = hueMaterials.first + 13 * hueIncrementMaterials;
+			break;
+		case graph::NT_SHADER_BUMP_TEXTURE: hue = hueMaterials.first + 14 * hueIncrementMaterials;
+			break;
 
-		case graph::NT_NUM_NODE_TYPES:    hue = 0.69f; break;  // This might be an enum limit, so be cautious if it's used in logic.
+		case graph::NT_NUM_NODE_TYPES: hue = 0.69f;
+			break; // This might be an enum limit, so be cautious if it's used in logic.
 		default:
-		{
-			nodeColors[type] = { vec4toImCol32(lightGrey), vec4toImCol32(darkGrey), vec4toImCol32(accent), vec4toImCol32(super) };
-			return nodeColors[type];
+			{
+				nodeColors[type] = {vec4toImCol32(lightGrey), vec4toImCol32(darkGrey), vec4toImCol32(accent), vec4toImCol32(super)};
+				return nodeColors[type];
+			}
 		}
-		}
 
 
-		const ImVec4 lightColor = HSLtoRGB(hue, fixedSaturation, lightGrey.x);  // lightGrey Value
-		const ImVec4 darkColor = HSLtoRGB(hue, fixedSaturation, darkGrey.x);  // darkGrey Value
-		const ImVec4 accentColor = HSLtoRGB(hue, fixedSaturation, accent.x);  // accent Value
-		const ImVec4 superColor = HSLtoRGB(hue, fixedSaturation, super.x);  // accent Value
+		const ImVec4 lightColor  = HSLtoRGB(hue, fixedSaturation, lightGrey.x); // lightGrey Value
+		const ImVec4 darkColor   = HSLtoRGB(hue, fixedSaturation, darkGrey.x);  // darkGrey Value
+		const ImVec4 accentColor = HSLtoRGB(hue, fixedSaturation, accent.x);    // accent Value
+		const ImVec4 superColor  = HSLtoRGB(hue, fixedSaturation, super.x);     // accent Value
 
-		nodeColors[type] = { vec4toImCol32(lightColor), vec4toImCol32(darkColor), vec4toImCol32(accentColor), vec4toImCol32(superColor) };
+		nodeColors[type] = {vec4toImCol32(lightColor), vec4toImCol32(darkColor), vec4toImCol32(accentColor), vec4toImCol32(superColor)};
 
 		return nodeColors[type];
 	}
@@ -146,15 +173,15 @@ namespace vtx::gui
 
 	NodeEditor::NodeEditor()
 	{
-		visitor.nodeEditor = this;
+		visitor.nodeEditor      = this;
 		guiVisitor.isNodeEditor = true;
 	}
 
 	void NodeEditor::updateNodeLinks(const std::shared_ptr<graph::Node>& node)
 	{
 		// TODO Here we should check if the node has changed.
-		NodeInfo& nodeInfo = nodes[node->getUID()];
-		const std::vector<std::shared_ptr<graph::Node>> children = node->getChildren();
+		NodeInfo&                                       nodeInfo         = nodes[node->getUID()];
+		const std::vector<std::shared_ptr<graph::Node>> children         = node->getChildren();
 		const int                                       numberOfChildren = children.size();
 
 		nodeInfo.links.clear();
@@ -167,10 +194,10 @@ namespace vtx::gui
 				if (socket.node)
 				{
 					LinkInfo linkInfo;
-					linkInfo.linkId = socket.linkId;
-					linkInfo.inputSocketId = socket.Id;
+					linkInfo.linkId              = socket.linkId;
+					linkInfo.inputSocketId       = socket.Id;
 					linkInfo.childOutputSocketId = socket.node->getUID();
-					linkInfo.childNodeType = socket.node->getType();
+					linkInfo.childNodeType       = socket.node->getType();
 					nodeInfo.links.push_back(linkInfo);
 				}
 			}
@@ -180,14 +207,13 @@ namespace vtx::gui
 			for (int i = 0; i < numberOfChildren; i++)
 			{
 				LinkInfo linkInfo;
-				linkInfo.inputSocketId = node->getUID() * 1000 + i;
-				linkInfo.linkId = node->getUID() * 1000 + children[i]->getUID();
+				linkInfo.inputSocketId       = node->getUID() * 1000 + i;
+				linkInfo.linkId              = node->getUID() * 1000 + children[i]->getUID();
 				linkInfo.childOutputSocketId = children[i]->getUID();
-				linkInfo.childNodeType = children[i]->getType();
+				linkInfo.childNodeType       = children[i]->getType();
 				nodeInfo.links.push_back(linkInfo);
 			}
 		}
-
 	}
 
 	void NodeEditor::submitNode(const std::shared_ptr<graph::Node>& node)
@@ -216,7 +242,7 @@ namespace vtx::gui
 		{
 			if (flags & ImNodesStyleFlags_VerticalLayout)
 			{
-				const std::vector <std::shared_ptr< graph::Node >> allNodes = graph::Scene::getSim()->getAllNodes();
+				const std::vector<std::shared_ptr<graph::Node>> allNodes = graph::Scene::getSim()->getAllNodes();
 				for (const auto& node : allNodes)
 				{
 					submitNode(node);
@@ -280,16 +306,16 @@ namespace vtx::gui
 
 	bool NodeEditor::verticalArrangementDrawNode(NodeInfo& nodeInfo) const
 	{
-		const int numberOfInputSockets = nodeInfo.links.size();
-		float nodeWidth = spacing * std::max(numberOfInputSockets, 1);
-		const float titleWidth = ImGui::CalcTextSize(nodeInfo.title.c_str()).x;
-		nodeWidth = std::max(nodeWidth, titleWidth);
-		const float localSpacing = nodeWidth / std::max(numberOfInputSockets, 1);
-		const float leftTitlePad = (nodeWidth - titleWidth) / 2;
+		const int   numberOfInputSockets = nodeInfo.links.size();
+		float       nodeWidth            = spacing * std::max(numberOfInputSockets, 1);
+		const float titleWidth           = ImGui::CalcTextSize(nodeInfo.title.c_str()).x;
+		nodeWidth                        = std::max(nodeWidth, titleWidth);
+		const float localSpacing         = nodeWidth / std::max(numberOfInputSockets, 1);
+		const float leftTitlePad         = (nodeWidth - titleWidth) / 2;
 
-		const std::shared_ptr<graph::Node>& node         = nodeInfo.node.lock();
-		const vtxID                        id           = node->getUID();
-		const graph::NodeType              nodeType     = node->getType();
+		const std::shared_ptr<graph::Node>& node     = nodeInfo.node.lock();
+		const vtxID                         id       = node->getUID();
+		const graph::NodeType               nodeType = node->getType();
 
 		nodesWithColor ? pushNodeColorByNodeType(nodeType) : 0;
 
@@ -297,7 +323,7 @@ namespace vtx::gui
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 		nodeInfo.size.x = std::max(nodeInfo.size.x, getOptions()->nodeWidth); // Enforce a minimum size
-		ImGui::PushItemWidth(nodeInfo.size.x); // Set the width of the next widget to 200
+		ImGui::PushItemWidth(nodeInfo.size.x);                                // Set the width of the next widget to 200
 
 		ImNodes::BeginNodeTitleBar();
 		ImGui::Dummy(ImVec2(leftTitlePad, 0));
@@ -338,8 +364,6 @@ namespace vtx::gui
 			{
 				ImGui::SameLine();
 			}
-
-
 		}
 
 		ImGui::PopStyleVar();
@@ -355,15 +379,16 @@ namespace vtx::gui
 	void NodeEditor::nodeResizeButton(math::vec2f& size, const int id) const
 	{
 		// Invisible button for corner dragging
-		ImVec2 corner = ImGui::GetItemRectMax();  // Get the maximum point of the last drawn item (should be the last input/output attribute)
-		int cornerSize = 20;  // Size of the draggable corner
-		corner.x -= cornerSize;  // Make sure the corner does not overlap the node content
+		ImVec2 corner     = ImGui::GetItemRectMax(); // Get the maximum point of the last drawn item (should be the last input/output attribute)
+		int    cornerSize = 20;                      // Size of the draggable corner
+		corner.x -= cornerSize;                      // Make sure the corner does not overlap the node content
 		corner.y -= cornerSize;
 
 		ImGui::SetCursorScreenPos(corner);
 		ImGui::InvisibleButton(("cornerbutton" + std::to_string(id)).c_str(), ImVec2((float)cornerSize, (float)cornerSize));
 
-		if (ImGui::IsMouseHoveringRect(corner, ImVec2(corner.x + cornerSize, corner.y + cornerSize))) {
+		if (ImGui::IsMouseHoveringRect(corner, ImVec2(corner.x + cornerSize, corner.y + cornerSize)))
+		{
 			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 		}
 
@@ -376,34 +401,34 @@ namespace vtx::gui
 		//ImGui::GetWindowDrawList()->AddRectFilled(corner, ImVec2(corner.x + cornerSize, corner.y + cornerSize), IM_COL32(255, 0, 0, 255));
 
 		// Dummy item with the size of the node
-		ImGui::SetCursorScreenPos(ImGui::GetItemRectMin());  // Set cursor to the minimum point of the last drawn item (should be the last input/output attribute)
+		ImGui::SetCursorScreenPos(ImGui::GetItemRectMin()); // Set cursor to the minimum point of the last drawn item (should be the last input/output attribute)
 		ImGui::Dummy(ImVec2((float)size.x, (float)size.y));
 	}
 
 	bool NodeEditor::horizontalArrangementDrawNode(NodeInfo& nodeInfo)
 	{
-		bool changed = false;
-		const std::shared_ptr<graph::Node>& node = nodeInfo.node.lock();
-		const int id = node->getUID();
+		bool                                changed = false;
+		const std::shared_ptr<graph::Node>& node    = nodeInfo.node.lock();
+		const int                           id      = node->getUID();
 
 		ImNodes::BeginNode(id);
 
-		nodeInfo.size.x = std::max(nodeInfo.size.x, getOptions()->nodeWidth);  // Enforce a minimum size
+		nodeInfo.size.x = std::max(nodeInfo.size.x, getOptions()->nodeWidth); // Enforce a minimum size
 		nodeInfo.size.y = std::max(nodeInfo.size.y, getOptions()->nodeWidth);
 		ImGui::PushItemWidth(nodeInfo.size.x);
 		guiVisitor.changed = false;
 		node->accept(guiVisitor);
 		changed = guiVisitor.changed;
 		//{
-		//	ImGui::TextUnformatted((std::to_string(nodeInfo.depth)).c_str());
-		//	ImGui::TextUnformatted((std::to_string(nodeInfo.width)).c_str());
-		//	ImGui::TextUnformatted((std::to_string(nodeInfo.overallWidth)).c_str());
+		//	ImGui::Text("Size x: %d, y: %d", (int)nodeInfo.size.x, (int)nodeInfo.size.y);
 		//	ImGui::Text("Position x: %d, y: %d", (int)ImNodes::GetNodeEditorSpacePos(id).x, (int)ImNodes::GetNodeEditorSpacePos(id).y);
+		//	const float totalItemWidth = ImGui::GetContentRegionAvail().x;
+		//	ImGui::Text("Total item width: %f", totalItemWidth);
 		//}
 		ImGui::PopItemWidth();
 
 		ImNodes::EndNode();
-		nodeInfo.pos = { ImNodes::GetNodeEditorSpacePos(id).x, ImNodes::GetNodeEditorSpacePos(id).y };
+		nodeInfo.pos = {ImNodes::GetNodeEditorSpacePos(id).x, ImNodes::GetNodeEditorSpacePos(id).y};
 
 		nodeResizeButton(nodeInfo.size, id);
 
@@ -440,9 +465,9 @@ namespace vtx::gui
 		// Collect nodes per depth and calculate bounding box
 		for (auto& [nodeId, nodeInfo] : nodes)
 		{
-			const std::shared_ptr<graph::Node>& node = nodeInfo.node.lock();
-			int depth = node->treePosition.depth;
-			const int overallWidth = node->treePosition.overallWidth;
+			const std::shared_ptr<graph::Node>& node         = nodeInfo.node.lock();
+			int                                 depth        = node->treePosition.depth;
+			const int                           overallWidth = node->treePosition.overallWidth;
 			if (depthToNodes.find(depth) == depthToNodes.end())
 			{
 				depthToNodes[depth] = std::vector<vtxID>();
@@ -452,29 +477,29 @@ namespace vtx::gui
 				depthToNodes[depth].resize(overallWidth + 1, 0);
 			}
 			depthToNodes[depth][overallWidth] = nodeId;
-			ImVec2 nodeDim = ImNodes::GetNodeDimensions(nodeId);
+			ImVec2 nodeDim                    = ImNodes::GetNodeDimensions(nodeId);
 
 			if (direction == LayoutDirection::Vertical)
 			{
-				depthToBoundingBox[depth].x += nodeDim.x + treeWidthPadding; // Width accumulates
+				depthToBoundingBox[depth].x += nodeDim.x + treeWidthPadding;                    // Width accumulates
 				depthToBoundingBox[depth].y = std::max(depthToBoundingBox[depth].y, nodeDim.y); // Max height
 			}
 			else
 			{
-				depthToBoundingBox[depth].y += nodeDim.y + treeWidthPadding; // Height accumulates
+				depthToBoundingBox[depth].y += nodeDim.y + treeWidthPadding;                    // Height accumulates
 				depthToBoundingBox[depth].x = std::max(depthToBoundingBox[depth].x, nodeDim.x); // Max width
 			}
 		}
 
-		const ImNodesContext* nodesContext = ImNodes::GetCurrentContext();
-		const ImRect availableSpace = nodesContext->CanvasRectScreenSpace;
-		const ImVec2 contentRegionAvailable = availableSpace.GetSize();
+		const ImNodesContext* nodesContext           = ImNodes::GetCurrentContext();
+		const ImRect          availableSpace         = nodesContext->CanvasRectScreenSpace;
+		const ImVec2          contentRegionAvailable = availableSpace.GetSize();
 		//const ImVec2 contentRegionAvailable = ImGui::GetWindowSize();
 		// Vertical Layout
 		if (direction == LayoutDirection::Vertical)
 		{
 			const float windowWidth = contentRegionAvailable.x;
-			float currentY = treeDepthPadding;
+			float       currentY    = treeDepthPadding;
 
 			for (int depth = 0; depth < depthToNodes.size(); ++depth)
 			{
@@ -484,9 +509,9 @@ namespace vtx::gui
 
 				for (const unsigned int nodeId : depthToNodes[depth])
 				{
-					if(nodeId == 0) continue; // Skip dummy node //TODO this shouldn't happen
-					const ImVec2 nodeDim = ImNodes::GetNodeDimensions(nodeId);
-					ImVec2       currentPos = { currentX, currentY };
+					if (nodeId == 0) continue; // Skip dummy node //TODO this shouldn't happen
+					const ImVec2 nodeDim    = ImNodes::GetNodeDimensions(nodeId);
+					ImVec2       currentPos = {currentX, currentY};
 					ImNodes::SetNodeEditorSpacePos(nodeId, currentPos);
 
 					currentX += nodeDim.x + treeWidthPadding;
@@ -507,8 +532,8 @@ namespace vtx::gui
 				float currentY = treeWidthPadding;
 				for (const unsigned int nodeId : depthToNodes[depth])
 				{
-					const ImVec2 nodeDim = ImNodes::GetNodeDimensions(nodeId);
-					ImVec2       currentPos = { currentX, currentY };
+					const ImVec2 nodeDim    = ImNodes::GetNodeDimensions(nodeId);
+					ImVec2       currentPos = {currentX, currentY};
 					ImNodes::SetNodeEditorSpacePos(nodeId, currentPos);
 
 					currentY += nodeDim.y + treeWidthPadding;
@@ -542,10 +567,10 @@ namespace vtx::gui
 	{
 		std::set<vtxID> selectedNodes = graph::Scene::get()->getSelected();
 		ImNodes::ClearNodeSelection();
-		for (const vtxID id: selectedNodes)
+		for (const vtxID id : selectedNodes)
 		{
 			const bool doesExists = (ImNodes::ObjectPoolFind(ImNodes::EditorContextGet().Nodes, (int)id) >= 0);
-			if(doesExists && !ImNodes::IsNodeSelected((int)id))
+			if (doesExists && !ImNodes::IsNodeSelected((int)id))
 			{
 				ImNodes::SelectNode((int)id);
 			}
@@ -580,7 +605,7 @@ namespace vtx::gui
 			}
 			else
 			{
-				arrangeNodes(LayoutDirection::Horizontal);
+				//arrangeNodes(LayoutDirection::Horizontal);
 			}
 			isFirstTime = false;
 		}
@@ -589,7 +614,7 @@ namespace vtx::gui
 		ImNodes::EndNodeEditor();
 		ImNodes::PopAttributeFlag();
 
-		
+
 		return updated;
 	}
 
@@ -598,7 +623,7 @@ namespace vtx::gui
 		if (const int numberOfSelectedNodes = ImNodes::NumSelectedNodes(); numberOfSelectedNodes != 0)
 		{
 			std::vector<int> selectedImNodesId;
-			std::set<vtxID> selectedVtxID;
+			std::set<vtxID>  selectedVtxID;
 			selectedImNodesId.resize(numberOfSelectedNodes);
 			ImNodes::GetSelectedNodes(selectedImNodesId.data());
 			for (int i = 0; i < numberOfSelectedNodes; ++i)
@@ -621,15 +646,15 @@ namespace vtx::gui
 		bool rearrangeNodes = false;
 		// Edit style variables
 		std::string hiddenLabel = "##hidden";
-		vtxImGui::halfSpaceWidget("Grid Spacing",				ImGui::DragFloat, (hiddenLabel + "GridSpacing").c_str(), &style.GridSpacing, 0.01f, 10.0f, 50.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Node Corner Rounding", ImGui::DragFloat, (hiddenLabel + "NodeCornerRounding").c_str(), &style.NodeCornerRounding, 0.01f, 0.0f, 10.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Node Padding", ImGui::DragFloat2, (hiddenLabel + "NodePadding").c_str(), reinterpret_cast<float*>(&style.NodePadding), 0.01f, 0.0f, 20.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Node Border Thickness", ImGui::DragFloat, (hiddenLabel + "NodeBorderThickness").c_str(), &style.NodeBorderThickness, 0.01f, 0.0f, 5.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Link Thickness", ImGui::DragFloat, (hiddenLabel + "LinkThickness").c_str(), &style.LinkThickness, 0.01f, 0.0f, 5.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Link LineSegmentsPerLength", ImGui::DragFloat, (hiddenLabel + "LinkLineSegmentsPerLength").c_str(), &style.LinkLineSegmentsPerLength, 0.01f, 0.1f, 1.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Link HoverDistance", ImGui::DragFloat, (hiddenLabel + "LinkHoverDistance").c_str(), &style.LinkHoverDistance, 0.01f, 0.0f, 20.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Bezier Divergence Factor", ImGui::DragFloat, (hiddenLabel + "BezierDivergenceFactor").c_str(), &style.BezierDeviationFactor, 0.01f, 0.0f, 2.0f,"%.3f", 0);
-		vtxImGui::halfSpaceWidget("Pin CircleRadius", ImGui::DragFloat, (hiddenLabel + "PinCircleRadius").c_str(), &style.PinCircleRadius, 0.01f, 1.0f, 10.0f,"%.3f", 0);
+		vtxImGui::halfSpaceWidget("Grid Spacing", ImGui::DragFloat, (hiddenLabel + "GridSpacing").c_str(), &style.GridSpacing, 0.01f, 10.0f, 50.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Node Corner Rounding", ImGui::DragFloat, (hiddenLabel + "NodeCornerRounding").c_str(), &style.NodeCornerRounding, 0.01f, 0.0f, 10.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Node Padding", ImGui::DragFloat2, (hiddenLabel + "NodePadding").c_str(), reinterpret_cast<float*>(&style.NodePadding), 0.01f, 0.0f, 20.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Node Border Thickness", ImGui::DragFloat, (hiddenLabel + "NodeBorderThickness").c_str(), &style.NodeBorderThickness, 0.01f, 0.0f, 5.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Link Thickness", ImGui::DragFloat, (hiddenLabel + "LinkThickness").c_str(), &style.LinkThickness, 0.01f, 0.0f, 5.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Link LineSegmentsPerLength", ImGui::DragFloat, (hiddenLabel + "LinkLineSegmentsPerLength").c_str(), &style.LinkLineSegmentsPerLength, 0.01f, 0.1f, 1.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Link HoverDistance", ImGui::DragFloat, (hiddenLabel + "LinkHoverDistance").c_str(), &style.LinkHoverDistance, 0.01f, 0.0f, 20.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Bezier Divergence Factor", ImGui::DragFloat, (hiddenLabel + "BezierDivergenceFactor").c_str(), &style.BezierDeviationFactor, 0.01f, 0.0f, 2.0f, "%.3f", 0);
+		vtxImGui::halfSpaceWidget("Pin CircleRadius", ImGui::DragFloat, (hiddenLabel + "PinCircleRadius").c_str(), &style.PinCircleRadius, 0.01f, 1.0f, 10.0f, "%.3f", 0);
 		//vtxImGui::halfSpaceWidget("Pin QuadSideLength", ImGui::DragFloat, (hiddenLabel + "PinQuadSideLength").c_str(), &style.PinQuadSideLength, 0.01f, 1.0f, 10.0f,"%.3f", 0);
 		//vtxImGui::halfSpaceWidget("Pin TriangleSideLength", ImGui::DragFloat, (hiddenLabel + "PinTriangleSideLength").c_str(), &style.PinTriangleSideLength, 0.01f, 1.0f, 10.0f,"%.3f", 0);
 		//vtxImGui::halfSpaceWidget("Pin LineThickness", ImGui::DragFloat, (hiddenLabel + "PinLineThickness").c_str(), &style.PinLineThickness, 0.01f, 0.1f, 5.0f,"%.3f", 0);
@@ -645,7 +670,7 @@ namespace vtx::gui
 		ImGui::Text("Style Flags");
 		auto chosenCheckBoxOverload = static_cast<bool(*)(const char*, int*, int)>(ImGui::CheckboxFlags);
 
-		vtxImGui::halfSpaceWidget("NodeOutline", chosenCheckBoxOverload, (hiddenLabel+ "NodeOutline").c_str(), (&style.Flags), ImNodesStyleFlags_NodeOutline);
+		vtxImGui::halfSpaceWidget("NodeOutline", chosenCheckBoxOverload, (hiddenLabel + "NodeOutline").c_str(), (&style.Flags), ImNodesStyleFlags_NodeOutline);
 		vtxImGui::halfSpaceWidget("GridLines", chosenCheckBoxOverload, (hiddenLabel + "GridLines").c_str(), (&style.Flags), ImNodesStyleFlags_GridLines);
 		vtxImGui::halfSpaceWidget("GridLinesPrimary", chosenCheckBoxOverload, (hiddenLabel + "GridLinesPrimary").c_str(), (&style.Flags), ImNodesStyleFlags_GridLinesPrimary);
 		vtxImGui::halfSpaceWidget("GridSnapping", chosenCheckBoxOverload, (hiddenLabel + "GridSnapping").c_str(), (&style.Flags), ImNodesStyleFlags_GridSnapping);
@@ -660,14 +685,14 @@ namespace vtx::gui
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		bool rearrange = ImGui::Button("Arrange Nodes");
 		ImGui::PopItemWidth();
-		
+
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Node Editor Style"))
 		{
 			rearrange |= styleEditor();
 		}
 
-		if(rearrange)
+		if (rearrange)
 		{
 			if (flags & ImNodesStyleFlags_VerticalLayout)
 			{
@@ -679,5 +704,4 @@ namespace vtx::gui
 			}
 		}
 	}
-
 }

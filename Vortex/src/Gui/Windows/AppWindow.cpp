@@ -76,9 +76,10 @@ namespace vtx {
         ImGui::End();
         ImGui::ShowDemoWindow();
     }
+
     void AppWindow::mainMenuBar()
     {
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2.0f, 6.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {2.0f, 6.0f});
         if (ImGui::BeginMainMenuBar())
         {
             if (ImGui::BeginMenu("File"))

@@ -26,7 +26,8 @@ int main(const int argc, char** argv) {
 			app.run();
 		}
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		VTX_ERROR("Error: {}", e.what());
 	}
 	app.shutDown();

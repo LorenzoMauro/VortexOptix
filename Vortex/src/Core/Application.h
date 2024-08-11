@@ -5,8 +5,8 @@
 #include "Gui/GuiWindow.h"
 #include "Scene/Scene.h"
 
-namespace vtx {
-
+namespace vtx
+{
 	static void glfwErrorCallback(const int error, const char* description)
 	{
 		VTX_ERROR("Glfw Error {}: {}", error, description);
@@ -27,9 +27,9 @@ namespace vtx {
 		void batchExperimentAppLoopBody(int i, const std::shared_ptr<graph::Renderer>& renderer);
 		void BatchExperimentRun();
 
-		static void  setStartUpFile(const std::string& filePath);
+		static void setStartUpFile(const std::string& filePath);
 
-		static Application* get() ;
+		static Application* get();
 		
 	public:
 		GLFWwindow*                    glfwWindow;

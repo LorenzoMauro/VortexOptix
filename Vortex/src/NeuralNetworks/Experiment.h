@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <map>
 #include <memory>
 #include <queue>
@@ -44,14 +44,16 @@ namespace vtx
 
 	static std::map<ExperimentStages, std::string> experimentStageNames =
 	{
-		{ STAGE_NONE, "Not performing Any Experiment"},
-		{ STAGE_REFERENCE_GENERATION, "Generating Ground truth" },
-		{ STAGE_MAPE_COMPUTATION, "Computing Mape" },
-		{ STAGE_END, "End" }
+		{STAGE_NONE, "Not performing Any Experiment"},
+		{STAGE_REFERENCE_GENERATION, "Generating Ground truth"},
+		{STAGE_MAPE_COMPUTATION, "Computing Mape"},
+		{STAGE_END, "End"}
 	};
 
-	struct MinHeapComparator {
-		bool operator()(const std::pair<float, int>& a, const std::pair<float, int>& b) const {
+	struct MinHeapComparator
+	{
+		bool operator()(const std::pair<float, int>& a, const std::pair<float, int>& b) const
+		{
 			return a.first > b.first; // For min heap
 		}
 	};
@@ -61,13 +63,13 @@ namespace vtx
 		RendererSettings                 rendererSettings;
 		network::config::NetworkSettings networkSettings;
 		WavefrontSettings                wavefrontSettings;
-		std::vector<float>               mape = std::vector<float>(0);
-		std::vector<float>               mse = std::vector<float>(0);
-		float* mseMap = nullptr;
-		float* mapeMap = nullptr;
+		std::vector<float>               mape        = std::vector<float>(0);
+		std::vector<float>               mse         = std::vector<float>(0);
+		float*                           mseMap      = nullptr;
+		float*                           mapeMap     = nullptr;
 		std::string                      name        = "Unnamed";
 		float                            averageMape = FLT_MAX;
-		float                            averageMse = FLT_MAX;
+		float                            averageMse  = FLT_MAX;
 		graph::Statistics                statistics;
 		bool                             generatedByBatchExperiments = false;
 		bool                             completed                   = false;
@@ -75,14 +77,13 @@ namespace vtx
 		void        constructName(const int experimentNumber);
 		std::string getStringHashKey();
 
-		bool storeExperiment = false;
+		bool storeExperiment   = false;
 		bool displayExperiment = true;
 	};
 
 	class ExperimentsManager
 	{
 	public:
-
 		void loadGroundTruth(const std::string& filePath);
 
 		void                                                 saveGroundTruth(const std::string& filePath);
@@ -108,24 +109,25 @@ namespace vtx
 	public:
 		std::vector<Experiment> experiments;
 
-		int width = 800;
+		int width  = 800;
 		int height = 800;
 
-		bool isGroundTruthReady = false;
-		math::vec3f* groundTruth = nullptr;
-		CUDABuffer groundTruthBuffer;
+		bool         isGroundTruthReady = false;
+		math::vec3f* groundTruth        = nullptr;
+		CUDABuffer   groundTruthBuffer;
 
 		CUDABuffer rendererImageBufferToneMapped;
 
 		CUDABuffer errorMapsBuffer;
 
-		int gtSamples = 5000;
-		int testSamples = 400;
-
+		int  gtSamples        = 5000;
+		int  testSamples      = 400;
+		bool stopAfterPlanned = false;
+		bool doAblation       = false;
 		// Manual Testing
-		int currentExperiment = 0;
-		int currentExperimentStep = 0;
-		ExperimentStages stage = STAGE_NONE;
+		int              currentExperiment     = 0;
+		int              currentExperimentStep = 0;
+		ExperimentStages stage                 = STAGE_NONE;
 
 		// Batch Testing
 		std::string                                                                                       saveFilePath;

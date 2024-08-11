@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "ErrorTypes.h"
 #include "Device/DevicePrograms/nvccUtils.h"
 #include "Core/Math.h"
@@ -242,6 +242,8 @@ namespace vtx::cuda{
 			dstPtr[id] = math::vec4f(srcPtr[id]);
 		});
 	}
+
+
 
 	__forceinline__ __device__ void computeMapeDevice(const math::vec3f* target, const math::vec3f* input, math::vec2f* mape, const int& id)
 	{

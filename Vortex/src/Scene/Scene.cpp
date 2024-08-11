@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "Utility/Operations.h"
 #include "Graph.h"
+#include "Utility/ModelLoader.h"
 
 namespace vtx::graph
 {
@@ -26,11 +27,11 @@ namespace vtx::graph
 		const std::shared_ptr<graph::SceneIndexManager> sim = Scene::getSim();
 		if (sim->nodeTypeFromUID(id) == NT_INSTANCE)
 		{
-			return { id };
+			return {id};
 		}
 		if (sim->nodeTypeFromUID(id) == NT_GROUP)
 		{
-			std::set<vtxID> instances;
+			std::set<vtxID>              instances;
 			const std::shared_ptr<Group> group = sim->getNode<Group>(id);
 			for (const std::shared_ptr<Node>& child : group->getChildren())
 			{
@@ -48,6 +49,7 @@ namespace vtx::graph
 		}
 		return {};
 	}
+
 	std::set<vtxID> Scene::getSelectedInstancesIds() const
 	{
 		std::set<vtxID> selectedInstances;
@@ -94,7 +96,7 @@ namespace vtx::graph
 	void Scene::removeInstancesFromSelection()
 	{
 		std::set<vtxID> newSelection;
-		for (const vtxID id: selectedIds)
+		for (const vtxID id : selectedIds)
 		{
 			if (sim->nodeTypeFromUID(id) != NT_INSTANCE)
 			{
@@ -103,11 +105,14 @@ namespace vtx::graph
 		}
 		setSelected(newSelection);
 	}
+
 	void Scene::setSelected(const std::set<vtxID>& selected)
 	{
 		selectedIds = selected;
 	}
+
 	std::set<vtxID> Scene::getSelected() const { return selectedIds; }
+
 	Scene::Scene()
 	{
 		sim = std::make_shared<SceneIndexManager>();

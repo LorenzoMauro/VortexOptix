@@ -229,8 +229,8 @@ namespace vtx
 		Image image;
 		image.load(filePath);
 		float* hostImage = image.getData();
-		width = image.getWidth();
-		height = image.getHeight();
+		width            = image.getWidth();
+		height           = image.getHeight();
 
 		groundTruthBuffer.resize(image.getWidth() * image.getHeight() * image.getChannels() * sizeof(float));
 		groundTruthBuffer.upload(hostImage, image.getWidth() * image.getHeight() * image.getChannels());
@@ -242,7 +242,7 @@ namespace vtx
 	void ExperimentsManager::saveGroundTruth(const std::string& filePath)
 	{
 		std::vector<math::vec3f> hostImage(width * height);
-		math::vec3f* hostImagePtr = hostImage.data();
+		math::vec3f*             hostImagePtr = hostImage.data();
 		groundTruthBuffer.download(hostImagePtr);
 		Image image;
 		image.load((float*)hostImagePtr, width, height, 3);

@@ -4,28 +4,29 @@
 
 #define cudaFunction __forceinline__ __device__
 #include "core/math.h"
+
 namespace vtx
 {
 	struct BsdfExtension
 	{
-		math::vec3f bsdf;
-		math::vec3f bsdfOverProb;
-		float bsdfProb;
-		math::vec3f wi;
-		float wiProb; // the same as bsdfProb if neural Sampling is not activated
-		math::vec3f Lo;
-		math::vec3f Li;
-		bool isSpecular;
+		math::vec3f       bsdf;
+		math::vec3f       bsdfOverProb;
+		float             bsdfProb;
+		math::vec3f       wi;
+		float             wiProb; // the same as bsdfProb if neural Sampling is not activated
+		math::vec3f       Lo;
+		math::vec3f       Li;
+		bool              isSpecular;
 		cudaFunction void reset()
 		{
-			bsdf = 0;
+			bsdf         = 0;
 			bsdfOverProb = 0;
-			bsdfProb = 0;
-			wi = 0;
-			wiProb = 0;
-			Lo = 0;
-			Li = 0;
-			isSpecular = false;
+			bsdfProb     = 0;
+			wi           = 0;
+			wiProb       = 0;
+			Lo           = 0;
+			Li           = 0;
+			isSpecular   = false;
 		}
 	};
 
@@ -43,14 +44,14 @@ namespace vtx
 
 		cudaFunction void reset()
 		{
-			bsdf = 0;
-			bsdfProb = 0;
-			wi = 0;
+			bsdf       = 0;
+			bsdfProb   = 0;
+			wi         = 0;
 			LiOverProb = 0;
-			misWeight = 0;
-			Lo = 0;
-			valid = 0;
-			Li = 0;
+			misWeight  = 1.0f;
+			Lo         = 0;
+			valid      = 0;
+			Li         = 0;
 		}
 	};
 
@@ -58,15 +59,15 @@ namespace vtx
 	{
 		math::vec3f position;
 		math::vec3f normal;
-		unsigned matId;
-		unsigned triangleId;
-		unsigned instanceId;
+		unsigned    matId;
+		unsigned    triangleId;
+		unsigned    instanceId;
 
 		cudaFunction void reset()
 		{
-			position = 0;
-			normal = 0;
-			matId = 0;
+			position   = 0;
+			normal     = 0;
+			matId      = 0;
 			triangleId = 0;
 			instanceId = 0;
 		}
@@ -75,23 +76,23 @@ namespace vtx
 	struct SurfaceEmission
 	{
 		math::vec3f Le;
-		float misWeight;
+		float       misWeight;
 
 		cudaFunction void reset()
 		{
-			Le = 0;
-			misWeight = 0;
+			Le        = 0;
+			misWeight = 1.0f;
 		}
 	};
 
 	struct BounceData
 	{
-		Hit hit;
-		BsdfExtension bsdfSample;
-		LightExtension lightSample;
+		Hit             hit;
+		BsdfExtension   bsdfSample;
+		LightExtension  lightSample;
 		SurfaceEmission surfaceEmission;
-		math::vec3f wo;
-		math::vec3f Lo;
+		math::vec3f     wo;
+		math::vec3f     Lo;
 
 		cudaFunction void reset()
 		{
@@ -107,27 +108,7 @@ namespace vtx
 	struct NetworkInterfaceDebugBuffers
 	{
 		math::vec3f* inferenceDebugBuffer = nullptr;
-		math::vec4f* filmBuffer = nullptr;
-
+		math::vec4f* filmBuffer           = nullptr;
 	};
-
-	struct NetworkDebugInfo
-	{
-		int frameId = 0;
-		math::vec3f position;
-		math::vec3f normal;
-		math::vec3f wo;
-		math::vec3f sample;
-		math::vec3f distributionMean;
-		math::vec3f bsdfSample;
-		float neuralProb;
-		float bsdfProb;
-		float wiProb;
-		float samplingFraction;
-		float* mixtureWeights;
-		float* mixtureParameters;
-		math::vec3f* bouncesPositions;
-	};
-
 }
 #endif
