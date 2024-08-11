@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef NASG_H
 #define NASG_H
 
@@ -28,12 +28,12 @@ namespace vtx::distribution
 	class Nasg
 	{
 	public:
-
 		__forceinline__ __device__ __host__ static int getParametersCount(const network::config::DistributionType dt, const bool forNetworkOutput = false)
 		{
 			int paramCount;
-			if (forNetworkOutput){
-				if (dt == network::config::D_NASG_TRIG)
+			if (forNetworkOutput)
+			{
+				if (dt == network::config::D_NASG_TRIG || dt == network::config::D_NASG_TRIG_NORMALIZED)
 				{
 					paramCount = 7;
 				}
@@ -52,7 +52,7 @@ namespace vtx::distribution
 			}
 			return paramCount;
 		}
-#ifdef CUDA_INTERFACE
+		#ifdef CUDA_INTERFACE
 
 		__forceinline__ __device__ static void splitParameters(
 			const math::vec3f*& xAxis,
@@ -117,6 +117,10 @@ namespace vtx::distribution
 
 			const float result = g / normalization;
 
+			if(isnan(result) || isinf(result))
+			{
+				return -1.0f;
+			}
 			return result;
 
 		}
@@ -213,7 +217,7 @@ namespace vtx::distribution
 		}
 
 
-#else
+		#else
 
 		static torch::Tensor normalizationFactor(
 			const torch::Tensor& lambda,
@@ -254,8 +258,8 @@ namespace vtx::distribution
 			const bool           isTraining,
 			const int            depth = 0
 		);
-#endif
-};
+		#endif
+	};
 }
 
 

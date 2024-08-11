@@ -45,7 +45,8 @@ namespace vtx::distribution
     	__forceinline__ __device__ static float prob(const math::vec3f& mean, const float& k, const math::vec3f& action)
         {
             const float pdf = k / (2.0f * M_PI * (1 - expf(-2.0f * k))) * expf(k * (dot(mean, action) - 1.0f));
-            if (isnan(pdf))
+
+            if (isnan(pdf) || isinf(pdf))
             {
                 return -1.0f;
             }
@@ -95,8 +96,12 @@ namespace vtx::distribution
 		}
 
 #endif
-        __forceinline__ __device__ __host__ static int getParametersCount()
+        __forceinline__ __device__ __host__ static int getParametersCount(bool forNetwork)
         {
+            if (forNetwork)
+            {
+	            return 3;
+			}
             return 4;
         }
     };

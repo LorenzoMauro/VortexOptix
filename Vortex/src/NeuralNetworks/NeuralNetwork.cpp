@@ -61,12 +61,6 @@ namespace vtx::network
         }
     }
 
-    void Network::reset()
-    {
-        settings.doTraining = true;
-        impl->reset();
-    }
-
     GraphsData& Network::getGraphs()
     {
     	return impl->getGraphs();

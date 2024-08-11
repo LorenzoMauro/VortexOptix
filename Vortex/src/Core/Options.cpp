@@ -3,6 +3,7 @@
 #include "Utils.h"
 #include "Device/DevicePrograms/LaunchParams.h"
 #include "NeuralNetworks/Experiment.h"
+#include "NeuralNetworks/Config/NetSettingGenerators.h"
 
 namespace vtx {
 
@@ -33,7 +34,7 @@ namespace vtx {
 		options.rendererSettings.maxSamples = 100000;
 		options.rendererSettings.accumulate = true;
 		options.rendererSettings.samplingTechnique = S_MIS;
-		options.rendererSettings.displayBuffer = FB_NETWORK_DEBUG_PATHS;
+		options.rendererSettings.displayBuffer = FB_NOISY;
 		options.rendererSettings.minClamp = 0.0001f;
 		options.rendererSettings.maxClamp = 1000.0f;
 		options.rendererSettings.useRussianRoulette = true;
@@ -110,7 +111,7 @@ namespace vtx {
 		options.networkSettings.lossType = network::config::L_KL_DIV_MC_ESTIMATION;
 		options.networkSettings.lossReduction = network::config::MEAN;
 
-		options.networkSettings = ExperimentsManager::getBestGuess();
+		options.networkSettings           = network::config::getBestGuess();
 		options.networkSettings.isUpdated = true;
 		options.networkSettings.active    = false;
 

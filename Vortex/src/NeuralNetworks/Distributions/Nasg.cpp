@@ -1,4 +1,4 @@
-#include "Nasg.h"
+﻿#include "Nasg.h"
 #include "TransformUtils.h"
 #include "Core/Constants.h"
 #include "NeuralNetworks/NeuralNetworkGraphs.h"
@@ -18,9 +18,10 @@ namespace vtx::distribution
 
 	torch::Tensor lambdaAActivation(const torch::Tensor& rawParams, const int& startIndex)
 	{
-		const torch::Tensor s1 = rawParams.narrow(-1, startIndex, 2);
-		torch::Tensor       lambdaA = softplus(s1) + sEps*10;
-		lambdaA = torch::clamp(lambdaA, 0, 200.0f);
+		torch::Tensor s1      = rawParams.narrow(-1, startIndex, 2) / 10.0f;
+		s1                    = torch::clamp(s1, -100.0f, 10.0f);
+		s1                    = s1.to(torch::kFloat32);
+		torch::Tensor lambdaA = exp(s1) + sEps * 10;
 		return lambdaA;
 	}
 
@@ -31,18 +32,19 @@ namespace vtx::distribution
 	)
 	{
 		const torch::Tensor zAxis = TransformUtils::zAxisFromTrig(
-			cosThetaEuler, sinThetaEuler,
-			cosPhiEuler, sinPhiEuler
-		);
+																  cosThetaEuler, sinThetaEuler,
+																  cosPhiEuler, sinPhiEuler
+																 );
 		const torch::Tensor xAxis = TransformUtils::xAxisFromTrig(
-			cosThetaEuler, sinThetaEuler,
-			cosPhiEuler, sinPhiEuler,
-			cosPsiEuler, sinPsiEuler
-		);
+																  cosThetaEuler, sinThetaEuler,
+																  cosPhiEuler, sinPhiEuler,
+																  cosPsiEuler, sinPsiEuler
+																 );
 
 		return {xAxis, zAxis};
 	}
-	std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> trigonometricParametrization(const torch::Tensor& rawParams)
+
+	std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> trigonometricParametrization(const torch::Tensor& rawParams, const bool& isNormalized)
 	{
 		const torch::IntArrayRef rawParamsSize = rawParams.sizes();
 
@@ -59,16 +61,21 @@ namespace vtx::distribution
 		const torch::Tensor cosPhi_sinPhi_cosPsi_sinPsi = trigParams.narrow(-1, 1, 4);
 
 		// Combine tensors, including the newly computed sinTheta
-		trigParams = torch::cat({ cosTheta, sinTheta, cosPhi_sinPhi_cosPsi_sinPsi }, -1);
-		trigParams = trigParams.view({ rawParamsSize.at(0), rawParamsSize.at(1), 3, 2 });
+		trigParams = torch::cat({cosTheta, sinTheta, cosPhi_sinPhi_cosPsi_sinPsi}, -1);
 
-		// Normalize the trigonometric values so that they refer to real angles
+		// this is actually mine, not from the original paper
+		if (isNormalized)
+		{
+			trigParams = trigParams.view({rawParamsSize.at(0), rawParamsSize.at(1), 3, 2});
 
-		trigParams += sEps;
-		const torch::Tensor normalization = linalg_vector_norm(trigParams, 2, -1, true).expand_as(trigParams);
+			// Normalize the trigonometric values so that they refer to real angles
+
+			trigParams += sEps;
+			const torch::Tensor normalization = linalg_vector_norm(trigParams, 2, -1, true).expand_as(trigParams);
 			trigParams                        = trigParams / normalization;
-		TRACE_TENSOR(trigParams);
-		trigParams = trigParams.view({ rawParamsSize.at(0), rawParamsSize.at(1), 6 });
+			TRACE_TENSOR(trigParams);
+		}
+		trigParams = trigParams.view({rawParamsSize.at(0), rawParamsSize.at(1), 6});
 
 		const torch::Tensor cosThetaEuler = trigParams.narrow(-1, 0, 1);
 		const torch::Tensor sinThetaEuler = trigParams.narrow(-1, 1, 1);
@@ -134,9 +141,29 @@ namespace vtx::distribution
 		torch::Tensor xAxis = term1 + term2 + term3;
 		xAxis               = normalize(xAxis, torch::nn::functional::NormalizeFuncOptions().dim(-1));
 
-		const torch::Tensor lambdaA = lambdaAActivation(rawParams, 4);
+		//torch::Tensor lambda = rawParams.narrow(-1, 4, 1);
+		//torch::Tensor a = rawParams.narrow(-1, 4 + 1, 1);
+		//lambda = sigmoid(lambda) * 100.0f + sEps * 10;
+		//a = sigmoid(a) * 20.0f + sEps * 10;
+		//torch::Tensor lambdaA = torch::cat({ lambda, a }, -1);
 
-		return { xAxis, zAxis, lambdaA };
+		//float a = 6.0f;
+		//float b = 6.4f;
+		//float c = -1;
+		//torch::Tensor s1 = rawParams.narrow(-1, 4, 2);
+		//s1 = s1.to(torch::kFloat32);
+		//s1 = 
+		//s1 = sigmoid((s1 + c) / a) * b;
+		//torch::Tensor       lambdaA = exp(s1);
+		//lambdaA = lambdaA + sEps * 10;
+		//torch::Tensor lambdaA = lambdaAActivation(rawParams, 4);
+
+		torch::Tensor s1      = rawParams.narrow(-1, 4, 2) / 10.0f;
+		s1                    = torch::clamp(s1, -100.0f, 10.0f);
+		s1                    = s1.to(torch::kFloat32);
+		torch::Tensor lambdaA = exp(s1) + sEps * 10;
+
+		return {xAxis, zAxis, lambdaA};
 	}
 
 	torch::Tensor Nasg::finalizeRawParams(const torch::Tensor& rawParams, const network::config::DistributionType& type)
@@ -146,26 +173,32 @@ namespace vtx::distribution
 		switch (type)
 		{
 		case network::config::D_NASG_TRIG:
-		{
-			std::tie(xAxis, zAxis, lambdaA) = trigonometricParametrization(rawParams);
-		}break;
+			{
+				std::tie(xAxis, zAxis, lambdaA) = trigonometricParametrization(rawParams, false);
+			}
+			break;
 		case network::config::D_NASG_ANGLE:
-		{
-			std::tie(xAxis, zAxis, lambdaA) = eulerAngleParametrization(rawParams);
+			{
+				std::tie(xAxis, zAxis, lambdaA) = eulerAngleParametrization(rawParams);
 			}
 			break;
 		case network::config::D_NASG_AXIS_ANGLE:
-		{
-			std::tie(xAxis, zAxis, lambdaA) = axisAngleParametrization(rawParams);
-		}break;
-		default:;
+			{
+				std::tie(xAxis, zAxis, lambdaA) = axisAngleParametrization(rawParams);
+			}
+			break;
+		case network::config::D_NASG_TRIG_NORMALIZED:
+			{
+				std::tie(xAxis, zAxis, lambdaA) = trigonometricParametrization(rawParams, true);
+			}
+		default: ;
 		}
 		TRACE_TENSOR(xAxis);
 		TRACE_TENSOR(zAxis);
 		TRACE_TENSOR(lambdaA);
 		//PRINT_TENSOR_ALWAYS("", xAxis);
 		//PRINT_TENSOR_ALWAYS("", zAxis);
-		torch::Tensor params = torch::cat({ xAxis, zAxis, lambdaA }, -1);
+		torch::Tensor params = torch::cat({xAxis, zAxis, lambdaA}, -1);
 		return params;
 	}
 
@@ -289,11 +322,11 @@ namespace vtx::distribution
 		const torch::Tensor              lambdaWeightedMean                      = ((lambda * mixtureWeights.unsqueeze(-1)).sum(1)).mean();
 		const torch::Tensor              aWeightedMean                           = ((a * mixtureWeights.unsqueeze(-1)).sum(1)).mean();
 		const std::vector<torch::Tensor> hostTensors                             = network::downloadTensors(
-			{
-				lambdaWeightedMean.unsqueeze(-1),
-				aWeightedMean.unsqueeze(-1)
-			}
-		);
+																											{
+																												lambdaWeightedMean.unsqueeze(-1),
+																												aWeightedMean.unsqueeze(-1)
+																											}
+																										   );
 
 		if (isTraining)
 		{

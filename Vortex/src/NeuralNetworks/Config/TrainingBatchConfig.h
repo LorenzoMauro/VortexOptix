@@ -29,11 +29,13 @@ namespace vtx::network::config
 	struct BatchGenerationConfig
 	{
 		bool             limitToFirstBounce = true;
-		bool			 onlyNonZero		= false;
+		bool			 onlyNonZero		= true;
 		bool             weightByMis		= true;
 		bool             weightByPdf		= true;
 		bool             useLightSample 	= true;
-		bool             trainOnLightSample = true;
+		bool             trainOnLightSample = false;
+		bool             skipSpecular 		= true;
+		bool		     skipIncomplete		= true;
 		bool             isUpdated			= true;
 	};
 

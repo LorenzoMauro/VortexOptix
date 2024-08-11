@@ -31,7 +31,8 @@ namespace vtx::network
 		{
 			if(isnan(data) || isinf(data))
 			{
-				throw std::runtime_error("Invalid data detected while adding data to graph, Network has probably crashed!");
+				std::string type = isnan(data) ? "NaN" : "Infinity";
+				throw std::runtime_error("Detected " + type + "  while adding data to graph " + curveName + ", Network has probably crashed!");
 			}
 			if(graphs.count(plotName) == 0)
 			{

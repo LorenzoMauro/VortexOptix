@@ -40,6 +40,9 @@ namespace vtx::graph
 		void accept(NodeVisitor& visitor) override;
 
 		vtxID getInstanceIdOnClick(int pixelID);
+
+		void saveFrame(std::string filePath);
+
 	public:
 		//GL Interop
 		WaveFrontIntegrator waveFrontIntegrator;
@@ -72,24 +75,24 @@ namespace vtx::graph
 				exitRenderThread(false)
 			{
 				renderThread = std::thread(
-					[this, renderFunction, instance]
-					{
+										   [this, renderFunction, instance]
+										   {
 											   while (true)
 											   {
-							// start timer
-							std::unique_lock<std::mutex> lock(renderMutex);
-							renderCondition.wait(lock, [this] { return exitRenderThread || rendererBusy; });
+												   // start timer
+												   std::unique_lock<std::mutex> lock(renderMutex);
+												   renderCondition.wait(lock, [this] { return exitRenderThread || rendererBusy; });
 												   if (exitRenderThread)
 												   {
-								break;
-							}
-							glfwMakeContextCurrent(instance->sharedContext); // Make the shared context current in this thread
+													   break;
+												   }
+												   glfwMakeContextCurrent(instance->sharedContext); // Make the shared context current in this thread
 												   std::invoke(renderFunction, instance);           // Use std::invoke to call the member function pointer
-							rendererBusy = false;
-							//bufferUpdateReady = true;
-						}
-					}
-					);
+												   rendererBusy = false;
+												   //bufferUpdateReady = true;
+											   }
+										   }
+										  );
 			}
 
 			~ThreadData()

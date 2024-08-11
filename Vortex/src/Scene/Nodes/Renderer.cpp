@@ -69,7 +69,26 @@ namespace vtx::graph
 
 		vtxID hostValue;
 		cudaMemcpy(&hostValue, pixelDataPtr, sizeof(vtxID), cudaMemcpyDeviceToHost);
-		return graph::Scene::getSim()->UIDfromTID(NT_INSTANCE,hostValue);
+		return graph::Scene::getSim()->UIDfromTID(NT_INSTANCE, hostValue);
+	}
+
+	static CUDABuffer tmBufferSave;
+
+	void Renderer::saveFrame(std::string filePath)
+	{
+		CUDABuffer* frameBuffer;
+		if (settings.denoiserSettings.active)
+		{
+			const size_t imageSize = (size_t)width * (size_t)height * sizeof(math::vec3f);
+			tmBufferSave.resize(imageSize);
+			toneMapBuffer(optix::getState()->denoiser.output, tmBufferSave, width, height, onDeviceData->launchParamsData.getHostImage().settings.renderer.toneMapperSettings);
+			frameBuffer = &tmBufferSave;
+		}
+		else
+		{
+			frameBuffer = &onDeviceData->frameBufferData.resourceBuffers.tmRadiance;
+		}
+		Image(*frameBuffer, width, height, 3).save(filePath);
 	}
 
 	bool Renderer::isReady(const bool setBusy)
@@ -144,7 +163,7 @@ namespace vtx::graph
 			if (
 				settings.adaptiveSamplingSettings.active &&
 				settings.adaptiveSamplingSettings.minAdaptiveSamples <= settings.iteration
-				)
+			)
 			{
 				noiseComputation(launchParamsDevice, settings.adaptiveSamplingSettings.noiseKernelSize, settings.adaptiveSamplingSettings.albedoNormalNoiseInfluence);
 			}
@@ -166,16 +185,16 @@ namespace vtx::graph
 				const OptixShaderBindingTable& sbt      = optix::getRenderingPipeline()->getSbt();
 
 				const auto result = optixLaunch( /*! pipeline we're launching launch: */
-					pipeline, state.stream,
-					/*! parameters and SBT */
-					(CUdeviceptr)launchParamsDevice,
-					launchParamsSize,
-					&sbt,
-					/*! dimensions of the launch: */
-					launchParams.frameBuffer.frameSize.x,
-					launchParams.frameBuffer.frameSize.y,
-					1
-				);
+												pipeline, state.stream,
+												/*! parameters and SBT */
+												(CUdeviceptr)launchParamsDevice,
+												launchParamsSize,
+												&sbt,
+												/*! dimensions of the launch: */
+												launchParams.frameBuffer.frameSize.x,
+												launchParams.frameBuffer.frameSize.y,
+												1
+											   );
 				OPTIX_CHECK(result);
 			}
 			cudaEventRecord(events.second);

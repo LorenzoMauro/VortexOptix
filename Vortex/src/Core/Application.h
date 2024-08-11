@@ -12,7 +12,22 @@ namespace vtx
 		VTX_ERROR("Glfw Error {}: {}", error, description);
 	}
 
-	class Application : public std::enable_shared_from_this<Application> {
+	struct ExperimentRunArguments
+	{
+		std::string filePath;
+		int         gtSamples           = 1000;
+		int         expSamples          = 1000;
+		int         width               = 500;
+		int         height              = 500;
+		bool        doExperiments       = false;
+		bool        overwriteExperiment = false;
+		bool        recomputeGt         = false;
+		bool        stopAfterPlanned    = false;
+		bool        doAblationStudy     = false;
+	};
+
+	class Application : public std::enable_shared_from_this<Application>
+	{
 	public:
 		void init();
 		void reset();
@@ -30,7 +45,7 @@ namespace vtx
 		static void setStartUpFile(const std::string& filePath);
 
 		static Application* get();
-		
+
 	public:
 		GLFWwindow*                    glfwWindow;
 		std::shared_ptr<WindowManager> windowManager;
@@ -38,7 +53,6 @@ namespace vtx
 		float                          frameTime     = 0.0f;
 		float                          lastFrameTime = 0.0f;
 		unsigned                       iteration     = 0;
-		bool                           loadEM        = false;
-		std::string                            EmFile;
+		ExperimentRunArguments         experimentArgs;
 	};
 }

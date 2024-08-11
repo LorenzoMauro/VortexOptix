@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <map>
 
 namespace vtx
@@ -45,37 +45,37 @@ namespace vtx
 
 	struct ToneMapperSettings
 	{
-		math::vec3f whitePoint;
-		math::vec3f invWhitePoint;
-		math::vec3f colorBalance;
-		float       burnHighlights;
-		float       crushBlacks;
-		float       saturation;
-		float       gamma;
-		float       invGamma;
-		bool        isUpdated = true;
+		math::vec3f whitePoint     = {1.0f, 1.0f, 1.0f};
+		math::vec3f invWhitePoint  = {1.0f, 1.0f, 1.0f};
+		math::vec3f colorBalance   = {1.0f, 1.0f, 1.0f};
+		float       burnHighlights = 0.0f;
+		float       crushBlacks    = 1.0f;
+		float       saturation     = 1.0f;
+		float       gamma          = 2.2f;
+		float       invGamma       = 1.0f / 2.2f;
+		bool        isUpdated      = true;
 
 		__both__ __forceinline__ void print()
 		{
 			printf(
-				"whitePoint: %f %f %f\n"
-				"invWhitePoint: %f %f %f\n"
-				"colorBalance: %f %f %f\n"
-				"burnHighlights: %f\n"
-				"crushBlacks: %f\n"
-				"saturation: %f\n"
-				"gamma: %f\n"
-				"invGamma: %f\n"
-				,
-				whitePoint.x, whitePoint.y, whitePoint.z,
-				invWhitePoint.x, invWhitePoint.y, invWhitePoint.z,
-				colorBalance.x, colorBalance.y, colorBalance.z,
-				burnHighlights,
-				crushBlacks,
-				saturation,
-				gamma,
-				invGamma
-			);
+				   "whitePoint: %f %f %f\n"
+				   "invWhitePoint: %f %f %f\n"
+				   "colorBalance: %f %f %f\n"
+				   "burnHighlights: %f\n"
+				   "crushBlacks: %f\n"
+				   "saturation: %f\n"
+				   "gamma: %f\n"
+				   "invGamma: %f\n"
+				   ,
+				   whitePoint.x, whitePoint.y, whitePoint.z,
+				   invWhitePoint.x, invWhitePoint.y, invWhitePoint.z,
+				   colorBalance.x, colorBalance.y, colorBalance.z,
+				   burnHighlights,
+				   crushBlacks,
+				   saturation,
+				   gamma,
+				   invGamma
+				  );
 		}
 	};
 
@@ -115,33 +115,33 @@ namespace vtx
 	};
 
 	inline static const char* displayBufferNames[] = {
-			"Beauty",
-			"Noisy",
-			"Diffuse",
-			"Orientation",
-			"True Normal",
-			"Shading Normal",
-			"Tangent",
-			"Uv",
-			"Noise",
-		    "GBuffer",
-			"Samples",
-			"Debug1",
-			"Network Inference State Position",
-			"Network Inference State Normal",
-			"Network Inference Outgoing Direction",
-			"Network Inference Concentration",
-		    "Network Inference Anisotropy",
-			"Network Inference Mean",
-			"Network Inference Sample",
-		    "Network Inference Sample Debug",
-			"Network Inference Pdf",
-			"Network Inference Is Front Face",
-			"Network Inference Sampling Fraction",
-			"Network Replay Buffer Reward",
-			"Network Replay Buffer Samples",
-			"Network Debug Paths",
-			"Count"
+		"Beauty",
+		"Noisy",
+		"Diffuse",
+		"Orientation",
+		"True Normal",
+		"Shading Normal",
+		"Tangent",
+		"Uv",
+		"Noise",
+		"GBuffer",
+		"Samples",
+		"Debug1",
+		"Network Inference State Position",
+		"Network Inference State Normal",
+		"Network Inference Outgoing Direction",
+		"Network Inference Concentration",
+		"Network Inference Anisotropy",
+		"Network Inference Mean",
+		"Network Inference Sample",
+		"Network Inference Sample Debug",
+		"Network Inference Pdf",
+		"Network Inference Is Front Face",
+		"Network Inference Sampling Fraction",
+		"Network Replay Buffer Reward",
+		"Network Replay Buffer Samples",
+		"Network Debug Paths",
+		"Count"
 	};
 
 	inline static std::map<std::string, DisplayBuffer> displayBufferNameToEnum =
@@ -185,17 +185,17 @@ namespace vtx
 	};
 
 	inline static const char* samplingTechniqueNames[] = {
-				"Bsdf Sampling",
-				"Light Sampling",
-				"Multiple Importance Sampling",
+		"Bsdf Sampling",
+		"Light Sampling",
+		"Multiple Importance Sampling",
 	};
 
 	inline static std::map<std::string, SamplingTechnique> samplingTechniqueNameToEnum =
 	{
-			{"Bsdf Sampling", S_BSDF},
-			{"Light Sampling", S_DIRECT_LIGHT},
-			{"Multiple Importance Sampling", S_MIS}
-		};
+		{"Bsdf Sampling", S_BSDF},
+		{"Light Sampling", S_DIRECT_LIGHT},
+		{"Multiple Importance Sampling", S_MIS}
+	};
 
 
 	enum Quadrant
@@ -236,10 +236,14 @@ namespace vtx
 		bool                     runOnSeparateThread;
 		bool                     isUpdated = true;
 		AdaptiveSamplingSettings adaptiveSamplingSettings;
-		FireflySettings           fireflySettings;
-		DenoiserSettings          denoiserSettings;
-		ToneMapperSettings        toneMapperSettings;
-		QuadrantsSettings         quadrantsSettings;
+		FireflySettings          fireflySettings;
+		DenoiserSettings         denoiserSettings;
+		ToneMapperSettings       toneMapperSettings;
+		QuadrantsSettings        quadrantsSettings;
+		int                      debugPixel      = -1;
+		int                      debugDepth      = -1;
+		float                    tangentRotation = 0.0f;
+		bool                     viewBackground  = true;
 
 		void resetUpdate()
 		{

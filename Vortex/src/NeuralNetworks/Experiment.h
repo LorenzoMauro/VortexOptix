@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <map>
 #include <memory>
 #include <queue>
@@ -86,21 +86,21 @@ namespace vtx
 	public:
 		void loadGroundTruth(const std::string& filePath);
 
-		void                                                 saveGroundTruth(const std::string& filePath);
+		void cleanExperiments();
 
-		static std::vector<network::config::NetworkSettings>                   generateNetworkSettingNeighbors(const network::config::NetworkSettings& setting);
-		static std::vector<Experiment>                                         generateExperimentNeighbors(const Experiment& experiment);
-		static network::config::NetworkSettings                                getBestGuess();
-		network::config::NetworkSettings getSOTA();
-		std::tuple<Experiment, Experiment, Experiment, Experiment, Experiment> startingConfigExperiments(const std::shared_ptr<graph::Renderer>& renderer);
-		void                                                                   setupNewExperiment(const Experiment& experiment, const std::shared_ptr<graph::Renderer>& renderer);
-		static std::vector<network::config::NetworkSettings>                   generateNetworkSettingsCombination();
-		std::pair<Experiment, std::vector<Experiment>>                         generateExperiments(const std::shared_ptr<graph::Renderer>& renderer);
-		void                                                                   generateGroundTruth(const Experiment& gtExperiment,Application* app, const std::shared_ptr<graph::Renderer>& renderer);
-		bool                                                                   runExperiment(Experiment& experiment, Application* app, const std::shared_ptr<graph::Renderer>& renderer);
-		bool                                                                   performExperiment(Experiment& experiment, Application* app,const std::shared_ptr<graph::Renderer>& renderer);
-		void                                                                   refillExperimentQueue();
-		void                                                                   BatchExperimentRun();
+		void saveGroundTruth(const std::string& filePath);
+
+		static std::vector<Experiment>                 generateExperimentNeighbors(const Experiment& experiment);
+		std::tuple<Experiment, Experiment, Experiment> startingConfigExperiments(
+			const std::shared_ptr<graph::Renderer>& renderer);
+		void setupNewExperiment(const Experiment& experiment, const std::shared_ptr<graph::Renderer>& renderer);
+		void generateGroundTruth(const Experiment&                       gtExperiment, Application* app,
+								 const std::shared_ptr<graph::Renderer>& renderer);
+		std::tuple<bool, bool> performExperiment(Experiment&                             experiment, Application* app,
+												 const std::shared_ptr<graph::Renderer>& renderer, const int      maxRuns);
+
+		void refillExperimentQueue(bool isMis);
+		void BatchExperimentRun();
 
 		std::string getImageSavePath(std::string experimentName);
 
@@ -130,16 +130,26 @@ namespace vtx
 		ExperimentStages stage                 = STAGE_NONE;
 
 		// Batch Testing
-		std::string                                                                                       saveFilePath;
-		std::unordered_set<std::string>                                                                   experimentSet;
-		std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, MinHeapComparator> experimentMinHeap;
-		std::deque<Experiment>                                                                            experimentQueue;
-		float                                                                                             bestMapeScore = FLT_MAX;
-		float            bestMseScore= FLT_MAX;
-		int                                                                                               bestExperimentIndex;
-		std::vector<float>																				  groundTruthHost;
+		std::string                     saveFilePath;
+		std::unordered_set<std::string> experimentSet;
+		std::deque<Experiment>          experimentQueue;
+
+		// BSDF ONLY EXPERIMENTS
+		std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, MinHeapComparator>
+		bsdfExperimentMinHeap;
+		float bsdfBestMapeScore = FLT_MAX;
+		float bsdfBestMseScore  = FLT_MAX;
+		int   bsdfBestExperimentIndex;
+
+		// MIS EXPERIMENTS
+		std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, MinHeapComparator>
+		misExperimentMinHeap;
+		float misBestMapeScore = FLT_MAX;
+		float misBestMseScore  = FLT_MAX;
+		int   misBestExperimentIndex;
+
+		std::vector<float> groundTruthHost;
 
 		InteropWrapper gtImageInterop;
 	};
-
 }

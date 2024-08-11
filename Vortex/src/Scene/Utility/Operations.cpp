@@ -22,6 +22,92 @@ namespace vtx::ops
 		}
 	}
 
+	std::shared_ptr<graph::Mesh> createSphere(float radius, int azimuthResolution, int polarResolution)
+	{
+		auto mesh = ops::createNode<Mesh>();
+
+		const float azimuthStep = 2 * PI / (float)azimuthResolution;
+		const float polarStep   = PI / (float)polarResolution;
+
+		for (int i = 0; i <= azimuthResolution; i++)
+		{
+			for (int j = 0; j <= polarResolution; j++)
+			{
+				const float azimuth = i * azimuthStep;
+				const float polar   = j * polarStep;
+
+				const float x = radius * sin(polar) * cos(azimuth);
+				const float y = radius * sin(polar) * sin(azimuth);
+				const float z = radius * cos(polar);
+
+				const math::vec3f position = {x, y, z};
+				const math::vec3f normal   = normalize(position);
+				const math::vec3f uv       = math::vec3f{(float)(azimuth / (2 * PI)), (float)(polar / PI), 0.0f};
+
+				math::vec3f tangent   = {-sin(azimuth), cos(azimuth), 0.0f};
+				math::vec3f bitangent = normalize(cross(normal, tangent));
+
+				mesh->vertices.push_back({});
+				auto& vertex     = mesh->vertices.back();
+				vertex.position  = position;
+				vertex.normal    = normal;
+				vertex.texCoord  = uv;
+				vertex.tangent   = tangent;
+				vertex.bitangent = bitangent;
+			}
+		}
+
+		for (int i = 0; i < azimuthResolution; i++)
+		{
+			for (int j = 0; j < polarResolution; j++)
+			{
+				if (j == 0)
+				{
+					//continue;
+					// Near the top pole
+					const int topPoleIndex    = 0;
+					const int nextVertexIndex = i + 1;
+					const int vertexIndex     = i;
+
+					mesh->indices.push_back(topPoleIndex);
+					mesh->indices.push_back(vertexIndex * (polarResolution + 1) + j + 1);
+					mesh->indices.push_back(nextVertexIndex * (polarResolution + 1) + j + 1);
+				}
+				else if (j == polarResolution - 1)
+				{
+					//continue;
+					// Near the bottom pole
+					const int bottomPoleIndex = azimuthResolution * (polarResolution + 1);
+					const int nextVertexIndex = i + 1;
+					const int vertexIndex     = i;
+
+					mesh->indices.push_back(bottomPoleIndex);
+					mesh->indices.push_back(nextVertexIndex * (polarResolution + 1) + j);
+					mesh->indices.push_back(vertexIndex * (polarResolution + 1) + j);
+				}
+				else
+				{
+					const int index0 = i * (polarResolution + 1) + j;
+					const int index1 = index0 + 1;
+					const int index2 = (i + 1) * (polarResolution + 1) + j;
+					const int index3 = index2 + 1;
+
+					mesh->indices.push_back(index0);
+					mesh->indices.push_back(index1);
+					mesh->indices.push_back(index2);
+					mesh->indices.push_back(index1);
+					mesh->indices.push_back(index3);
+					mesh->indices.push_back(index2);
+				}
+			}
+		}
+
+		//int targetTri = 2;
+		//mesh->indices = {mesh->indices[targetTri], mesh->indices[targetTri + 1], mesh->indices[targetTri + 2]};
+
+		return mesh;
+	}
+
 	// A simple unit cube built from 12 triangles.
 	std::shared_ptr<graph::Mesh> createBox(float sideLength)
 	{
@@ -182,7 +268,7 @@ namespace vtx::ops
 		std::shared_ptr<Camera> camera = ops::createNode<Camera>();
 		camera->transform->rotateDegree(math::xAxis, 90.0f);
 		camera->transform->rotateDegree(camera->horizontal, -15.0f);
-		camera->transform->translate(math::yAxis, -2.0f*3);
+		camera->transform->translate(math::yAxis, -2.0f * 3);
 		camera->transform->rotateDegree(math::zAxis, -90.0f);
 		camera->transform->translate(math::zAxis, 2.0f);
 		camera->updateDirections();
@@ -411,8 +497,8 @@ namespace vtx::ops
 		}
 	}
 
-	float gaussianFilter(const float* rgba, const unsigned int width, const unsigned int height, const unsigned int x,
-						 const unsigned int y, const bool isSpherical)
+	float gaussianFilter(const float*       rgba, const unsigned int width, const unsigned int height, const unsigned int x,
+						 const unsigned int y, const bool            isSpherical)
 	{
 		// Lookup is repeated in x and clamped to edge in y.
 		unsigned int left;
@@ -549,12 +635,12 @@ namespace vtx::ops
 	{
 		VTX_INFO("Computing vertex tangents Space for Mesh {}", mesh->getUID());
 		std::vector<VertexAttributes>& vertices = mesh->vertices;
-		std::vector<vtxID>& indices = mesh->indices;
+		std::vector<vtxID>&            indices  = mesh->indices;
 		// Initialize normals, tangents, and bitangents to zero
 		for (auto& vertex : vertices)
 		{
-			vertex.normal = math::vec3f(0.0f, 0.0f, 0.0f);
-			vertex.tangent = math::vec3f(0.0f, 0.0f, 0.0f);
+			vertex.normal    = math::vec3f(0.0f, 0.0f, 0.0f);
+			vertex.tangent   = math::vec3f(0.0f, 0.0f, 0.0f);
 			vertex.bitangent = math::vec3f(0.0f, 0.0f, 0.0f);
 		}
 
@@ -572,7 +658,7 @@ namespace vtx::ops
 
 			// Compute face normal
 			math::vec3f normal = cross(e1, e2);
-			normal = math::normalize(normal);
+			normal             = math::normalize(normal);
 
 			// Update face attributes
 			//FaceAttributes faceAttr;
@@ -813,17 +899,17 @@ namespace vtx::ops
 		std::string scenePath;
 		switch (importedScene)
 		{
-			case BLENDER_TEST:
+		case BLENDER_TEST:
 			{
 				scenePath = getOptions()->dataFolder + "models/Blender/blenderTest13.gltf";
 			}
 			break;
-			case SPONZA_OBJ:
+		case SPONZA_OBJ:
 			{
 				scenePath = getOptions()->dataFolder + "models/sponza2/sponza.obj";
 			}
 			break;
-			case SPONZA_FBX:
+		case SPONZA_FBX:
 			{
 				scenePath = getOptions()->dataFolder + "models/sponza/FBX 2013/NewSponza_Main_Zup_002.fbx";
 			}
@@ -844,8 +930,8 @@ namespace vtx::ops
 
 		switch (testType)
 		{
-			case IMPORTED_MATERIALS: break;
-			case CREATED_PRINCIPLED:
+		case IMPORTED_MATERIALS: break;
+		case CREATED_PRINCIPLED:
 			{
 				const std::vector<std::shared_ptr<Instance>> instances = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
 
@@ -858,11 +944,11 @@ namespace vtx::ops
 
 				for (const auto& instance : instances)
 				{
-						instance->addMaterial(pBsdfMaterial1, 0);
+					instance->addMaterial(pBsdfMaterial1, 0);
 				}
 			}
 			break;
-			case IMPORTED_MDL:
+		case IMPORTED_MDL:
 			{
 				const std::vector<std::shared_ptr<Instance>> instances           = graph::Scene::getSim()->getAllNodeOfType<graph::Instance>(NT_INSTANCE);
 				const std::shared_ptr<Material>              importedMdlMaterial = ops::createNode<Material>();
@@ -874,21 +960,21 @@ namespace vtx::ops
 				{
 				case BSDF_DIFFUSE_REFLECTION:
 					{
-					materialName = "bsdf_diffuse_reflection";
-					materialPath = "\\bsdf_diffuse_reflection.mdl";
-				}
+						materialName = "bsdf_diffuse_reflection";
+						materialPath = "\\bsdf_diffuse_reflection.mdl";
+					}
 					break;
 				case STONE_MEDITERRANEAN:
-				{
-					materialName = "Stone_Mediterranean";
-					materialPath = "\\vMaterials_2\\Stone\\Stone_Mediterranean.mdl";
-				}
-				break;
+					{
+						materialName = "Stone_Mediterranean";
+						materialPath = "\\vMaterials_2\\Stone\\Stone_Mediterranean.mdl";
+					}
+					break;
 				case ALLUMINIUM:
-				{
-					materialName = "Aluminum";
-					materialPath = "\\vMaterials_2\\Metal\\Aluminum.mdl";
-				}
+					{
+						materialName = "Aluminum";
+						materialPath = "\\vMaterials_2\\Metal\\Aluminum.mdl";
+					}
 					break;
 				}
 				const std::shared_ptr<graph::shader::ImportedNode> materialGraph = ops::createNode<graph::shader::ImportedNode>(materialPath, materialName, true);
@@ -953,5 +1039,182 @@ namespace vtx::ops
 		}
 
 		return {sceneRoot, camera};
+	}
+
+	std::shared_ptr<graph::shader::ShaderNode> addMaterialVariation(const math::vec3f& pos, const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Group>& group)
+	{
+		const std::shared_ptr<Instance> instance = ops::createNode<Instance>();
+		instance->setChild(mesh);
+		const std::shared_ptr<Material> material = ops::createNode<Material>();
+		instance->addMaterial(material);
+		material->materialGraph = ops::createNode<graph::shader::PrincipledMaterial>();
+		instance->transform->translate(pos);
+		group->addChild(instance);
+		return material->materialGraph;
+	}
+
+	void testMaterialScene()
+	{
+		auto& group = graph::Scene::get()->sceneRoot;
+
+		auto [groupAssimp, _]    = importer::importSceneFile("E:/articoli/PhDThesis/Models/materialShow.gltf");
+		group                    = groupAssimp;
+		math::vec3f gridStartPos = {0, -10, 20};
+		const float delta        = 2.5f;
+		const auto  mesh         = ops::createSphere(1, 64, 32);
+
+		auto envMapPath                                             = "E:/VortexExperiments/Models/textures/qwantani_1k.hdr";
+		graph::Scene::get()->renderer->environmentLight             = ops::createNode<graph::EnvironmentLight>();
+		graph::Scene::get()->renderer->environmentLight->envTexture = ops::createNode<graph::Texture>(envMapPath);
+		graph::Scene::get()->renderer->environmentLight->envTexture->init();
+		return;
+
+		float roughness = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.8f, 0.8f, 0.0f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(roughness));
+			roughness += 0.1f;
+		}
+
+		gridStartPos = gridStartPos + math::vec3f(0, 0, -delta);
+		float ior    = 1.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.8f, 0.8f, 0.0f}));
+			shader->setSocketValue(IOR_SOCKET, mdl::createConstantFloat(ior));
+			ior += 0.1f;
+		}
+
+		gridStartPos   = gridStartPos + math::vec3f(0, 0, -delta);
+		float metallic = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.8f, 0.8f, 0.0f}));
+			shader->setSocketValue(METALLIC_SOCKET, mdl::createConstantFloat(metallic));
+			metallic += 0.1f;
+		}
+
+		gridStartPos  = gridStartPos + math::vec3f(0, 0, -delta);
+		float filmIor = 1.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(FILM_IOR_SOCKET, mdl::createConstantFloat(filmIor));
+			filmIor += 0.1f;
+		}
+
+		gridStartPos     = gridStartPos + math::vec3f(0, 0, -delta);
+		float anisotropy = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(METALLIC_SOCKET, mdl::createConstantFloat(1.0f));
+			shader->setSocketValue(ANISOTROPY_SOCKET, mdl::createConstantFloat(anisotropy));
+			anisotropy += 0.1f;
+		}
+
+		gridStartPos             = gridStartPos + math::vec3f(0, 0, -delta);
+		float anisotropyRotation = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(METALLIC_SOCKET, mdl::createConstantFloat(1.0f));
+			shader->setSocketValue(ANISOTROPY_ROTATION_SOCKET, mdl::createConstantFloat(anisotropyRotation));
+			anisotropyRotation += 0.1f;
+		}
+
+		//Coat Color
+		gridStartPos = gridStartPos + math::vec3f(0, 0, -delta);
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(COAT_COLOR_SOCKET, mdl::createConstantColor(math::vec3f{0.8f, 0.8f, 0.0f}));
+			shader->setSocketValue(COAT_ROUGHNESS_SOCKET, mdl::createConstantFloat(0.8f));
+			shader->setSocketValue(COAT_AMOUNT_SOCKET, mdl::createConstantFloat(1.0f));
+		}
+
+		//Coat Roughness
+		gridStartPos        = gridStartPos + math::vec3f(0, 0, -delta);
+		float coatRoughness = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(COAT_ROUGHNESS_SOCKET, mdl::createConstantFloat(coatRoughness));
+			coatRoughness += 0.1f;
+			shader->setSocketValue(COAT_AMOUNT_SOCKET, mdl::createConstantFloat(1.0f));
+		}
+
+		//Coat Transparency
+		gridStartPos           = gridStartPos + math::vec3f(0, 0, -delta);
+		float coatTransparency = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(COAT_TRANSPARENCY_SOCKET, mdl::createConstantFloat(coatTransparency));
+			coatTransparency += 0.1f;
+			shader->setSocketValue(COAT_AMOUNT_SOCKET, mdl::createConstantFloat(1.0f));
+		}
+
+		//Sheen Tint
+		gridStartPos = gridStartPos + math::vec3f(0, 0, -delta);
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(SHEEN_TINT_SOCKET, mdl::createConstantColor(math::vec3f{0.8f, 0.8f, 0.0f}));
+			shader->setSocketValue(SHEEN_AMOUNT_SOCKET, mdl::createConstantFloat(1.0f));
+		}
+
+		//Sheen Roughness
+		gridStartPos         = gridStartPos + math::vec3f(0, 0, -delta);
+		float sheenRoughness = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(SHEEN_ROUGHNESS_SOCKET, mdl::createConstantFloat(sheenRoughness));
+			sheenRoughness += 0.1f;
+			shader->setSocketValue(SHEEN_AMOUNT_SOCKET, mdl::createConstantFloat(1.0f));
+		}
+
+		//Transmission Amount
+		gridStartPos             = gridStartPos + math::vec3f(0, 0, -delta);
+		float transmissionAmount = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(TRANSMISSION_SOCKET, mdl::createConstantFloat(transmissionAmount));
+			transmissionAmount += 0.1f;
+		}
+
+		//Transmission Roughness
+		gridStartPos                = gridStartPos + math::vec3f(0, 0, -delta);
+		float transmissionRoughness = 0.0f;
+		for (int i = 0; i <= 10; i++)
+		{
+			const auto shader = addMaterialVariation(gridStartPos + math::vec3f(0, -delta * i, 0), mesh, group);
+			shader->setSocketValue(ALBEDO_SOCKET, mdl::createConstantColor(math::vec3f{0.2f, 0.2f, 0.2f}));
+			shader->setSocketValue(ROUGHNESS_SOCKET, mdl::createConstantFloat(0.3f));
+			shader->setSocketValue(TRANSMISSION_ROUGHNESS_SOCKET, mdl::createConstantFloat(transmissionRoughness));
+			transmissionRoughness += 0.1f;
+		}
 	}
 }

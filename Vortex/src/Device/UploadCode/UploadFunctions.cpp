@@ -4,6 +4,7 @@
 #include "Scene/Graph.h"
 #include <cudaGL.h>
 
+#include "Device/DevicePrograms/DebugDownloadData.h"
 #include "Device/Wrappers/SoaWorkItems.h"
 #include "Device/Wrappers/WorkItems.h"
 
@@ -139,7 +140,7 @@ namespace vtx::device
 		TextureData* texture = onDeviceData->textureDataMap[envLight->envTexture->getUID()].getDeviceImage();
 		envLightData.texture = texture;
 		envLightData.transformation = envLight->transform->affineTransform;
-		envLightData.invTransformation = math::affine3f(envLightData.transformation.l.inverse(), envLightData.transformation.p);
+		envLightData.invTransformation = envLight->transform->affineTransform.inverse();
 		envLightData.aliasMap = aliasBuffer.castedPointer<AliasData>();
 		envLightData.scaleLuminosity = envLight->scaleLuminosity;
 
@@ -861,6 +862,14 @@ namespace vtx::device
 				rendererNode->waveFrontIntegrator.network.settings.resetUpdate();
 			}
 		}
+
+		DebugData::prepare(
+			rendererNode->settings.maxBounces,
+			rendererNode->settings.debugPixel,
+			rendererNode->settings.debugDepth,
+			rendererNode->waveFrontIntegrator.network.settings.mixtureSize,
+			rendererNode->waveFrontIntegrator.network.settings.distributionType
+		);
 
 		if (rendererNode->settings.isAnyUpdated())
 		{

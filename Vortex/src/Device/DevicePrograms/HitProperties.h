@@ -60,32 +60,51 @@ namespace vtx
         __forceinline__ __device__ void computeSurfaceProperties(
             const graph::VertexAttributes* v0,
             const graph::VertexAttributes* v1,
-            const graph::VertexAttributes* v2
+            const graph::VertexAttributes* v2,
+            float rotateTangent
         )
         {
             trueNormal = cross(v1->position - v0->position, v2->position - v0->position);
-            shadingNormal = v0->normal * baricenter.x + v1->normal * baricenter.y + v2->normal * baricenter.z;
-            //bitangent = v0->bitangent * baricenter.x + v1->bitangent * baricenter.y + v2->bitangent * baricenter.z;
-            tangent = v0->tangent * baricenter.x + v1->tangent * baricenter.y + v2->tangent * baricenter.z;
+            shadingNormal   = v0->normal    * baricenter.x + v1->normal     * baricenter.y + v2->normal     * baricenter.z;
+            bitangent       = v0->bitangent * baricenter.x + v1->bitangent  * baricenter.y + v2->bitangent  * baricenter.z;
+            tangent         = v0->tangent   * baricenter.x + v1->tangent    * baricenter.y + v2->tangent    * baricenter.z;
+
 
             if (dot(trueNormal, shadingNormal) < 0.0f) // make sure that shading and geometry normal agree on sideness
             {
                 trueNormal = -trueNormal;
             }
 
-            trueNormal = math::normalize(math::transformNormal3F(*oTw, trueNormal));
-            shadingNormal = math::normalize(math::transformNormal3F(*oTw, shadingNormal));
-            tangent = math::transformVector3F(*oTw, tangent);
-            bitangent = math::transformVector3F(*oTw, bitangent);
+            trueNormal      = math::normalize(math::transformNormal3F(*oTw, math::normalize(trueNormal)));
+            shadingNormal   = math::normalize(math::transformNormal3F(*oTw, math::normalize(shadingNormal)));
+            tangent         = math::normalize(math::transformVector3F(*oTw, math::normalize(tangent)));
+            bitangent       = math::normalize(math::transformVector3F(*oTw, math::normalize(bitangent)));
 
-            //tangent = tangent - shadingNormal * dot(shadingNormal, tangent);
-            tangent = math::normalize(tangent);
-
-            //bitangent = bitangent - shadingNormal * dot(shadingNormal, bitangent);
-            bitangent = math::normalize(bitangent);
-
+            const float rotRad = rotateTangent * 3.14159265358979323846f / 180.0f;
+            const float cosRot = cos(rotRad);
+            const float sinRot = sin(rotRad);
+            tangent = math::normalize(math::vec3f(
+				cosRot * tangent.x + sinRot * bitangent.x,
+				cosRot * tangent.y + sinRot * bitangent.y,
+				cosRot * tangent.z + sinRot * bitangent.z
+			));
             bitangent = math::normalize(cross(shadingNormal, tangent));
-            tangent = math::normalize(cross(bitangent, shadingNormal));
+
+            if(false)
+	        {
+		        math::vec3f referenceVector(0.0f, 1.0f, 0.0f);
+
+            	// Check if the normal is not the 'up' vector or too close to it
+            	if (fabs(math::dot(shadingNormal, referenceVector)) > 0.999f) {
+            		referenceVector = math::vec3f(1.0f, 0.0f, 0.0f);
+            	}
+            	// radial Z coordinates
+            	tangent = math::normalize(cross(shadingNormal, referenceVector));
+            	bitangent = math::normalize(cross(tangent, shadingNormal));
+	        }
+
+            //bitangent = math::normalize(cross(shadingNormal, tangent));
+            //tangent = math::normalize(cross(bitangent, shadingNormal));
 
         	if (utl::isNan(bitangent))
             {
@@ -120,7 +139,7 @@ namespace vtx
             const graph::VertexAttributes* v1 = nullptr;
             const graph::VertexAttributes* v2 = nullptr;
             getTriangleVertices(instance, v0, v1, v2);
-            computeSurfaceProperties(v0, v1, v2);
+            computeSurfaceProperties(v0, v1, v2,params->settings.renderer.tangentRotation);
             position = v0->position * baricenter.x + v1->position * baricenter.y + v2->position * baricenter.z;
             position = math::transformPoint3F(*oTw, position);
         }
@@ -133,7 +152,7 @@ namespace vtx
             const graph::VertexAttributes* v1 = nullptr;
             const graph::VertexAttributes* v2 = nullptr;
             getTriangleVertices(instance, v0, v1, v2);
-            computeSurfaceProperties(v0, v1, v2);
+            computeSurfaceProperties(v0, v1, v2, params->settings.renderer.tangentRotation);
             isFrontFace = 0.0f <= dot(-outgoingDirection, trueNormal); // Explicitly include edge-on cases as frontface condition!
             determineMaterialInfo(instance);
         }

@@ -95,7 +95,13 @@ namespace vtx::distribution
         // The params comes from the network output but are not yet "activated" properly
         // The dimension is Batch Size x Distribution Parameters Count
         // Extracting means and k for all mixtures at once
-        auto [loc, scale] = splitParams(params);
+        torch::Tensor theta = params.narrow(params.dim() - 1, 0, 1);
+        torch::Tensor phi = params.narrow(params.dim() - 1, 1, 1);
+        torch::Tensor scale = params.narrow(params.dim() - 1, 2, 1);
+
+        phi = sigmoid(phi)* M_PI;
+        theta = sigmoid(theta)* 2*M_PI;
+        torch::Tensor loc = torch::cat({ torch::sin(phi) * torch::cos(theta), torch::sin(phi) * torch::sin(theta), torch::cos(phi) }, -1);
         TRACE_TENSOR(loc);
         TRACE_TENSOR(scale);
         loc = loc + sEps;

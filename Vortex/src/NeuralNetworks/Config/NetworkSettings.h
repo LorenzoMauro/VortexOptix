@@ -23,9 +23,9 @@ namespace vtx::network::config
 	struct MlpSettings
 	{
 		int				inputDim;
-		int				outputDim;
-		int				hiddenDim;
-		int				numHiddenLayers;
+		int				outputDim = 64;
+		int				hiddenDim = 64;
+		int				numHiddenLayers = 3;
 		ActivationType	activationType = AT_RELU;
 	};
 
@@ -53,48 +53,64 @@ namespace vtx::network::config
 		bool plotGraphs   = true;
 		bool isUpdated    = true;
 
-		// DEBUG SETTINGS
-		int  depthToDebug = 0;
-		int   debugPixelId = -2;
-		bool isDebuggingUpdated = false;
-
 		int   maxTrainingSteps        = 1000;
-		int   batchSize               = 1;
 		int   inferenceIterationStart = 1;
 		bool  clearOnInferenceStart   = false;
 
-		// BATCH GENERATION
-		BatchGenerationConfig trainingBatchGenerationSettings;
 
 		//MAIN NETWORK SETTINGS
 		MlpSettings mainNetSettings;
 		MainNetEncodingConfig inputSettings;
+		bool            emaUpdate;
+		float           emaDecay = 0.9f;
 
 		// DISTRIBUTION SETTINGS
 		DistributionType distributionType = D_SPHERICAL_GAUSSIAN;
 		int              mixtureSize      = 1;
 
+		// BATCH GENERATION
+		int   batchSize = 1;
+		BatchGenerationConfig trainingBatchGenerationSettings;
+
 		//LOSS SETTINGS
 		LossType      lossType              = L_KL_DIV_MC_ESTIMATION;
 		LossReduction lossReduction         = MEAN;
+
 		bool          constantBlendFactor   = false;
 		float         blendFactor           = 0.9f;
-		float         targetScale			= 1.0f;
+
 		bool          samplingFractionBlend = false;
-		bool		  scaleBySampleProb    = false;
+		float		  fractionBlendTrainPercentage = 0.2f;
+
 		bool          clampSamplingFraction = false;
-		float          sfClampValue = 1.0f;
+		float         sfClampValue = 1.0f;
+
+		float            constantSamplingFraction = false;
+		float            constantSamplingFractionValue = 0.5f;
+
+
+
+		float         targetScale			= 1.0f;
+		bool		  scaleBySampleProb    = false;
+
+		bool  scaleLossBlendedQ = false;
+		bool  clampBsdfProb = false;
+
+		bool  learnInputRadiance = false;
+		float lossClamp = 100.0f;
+		bool   toneMapRadiance = false;
+
+		// ENTROPY LOSS SETTINGS
+		bool          useEntropyLoss = false;
+		float         entropyWeight = 1.0f;
+		float         targetEntropy = 3.0f;
 
 		// OPTIMIZER SETTINGS
 		float learningRate = 0.001f;
 		int	  adamEps = 15;
 		float schedulerGamma = 0.33f;
 		int schedulerStep = 200;
-
-		// ENTROPY LOSS SETTINGS
-		bool          useEntropyLoss = false;
-		float         entropyWeight = 1.0f;
-		float         targetEntropy = 3.0f;
+		int l2WeightExp = 0;
 
 		// AUXILIARY LOSS SETTINGS
 		bool                 useAuxiliaryNetwork = false;
@@ -108,30 +124,24 @@ namespace vtx::network::config
 		float                radianceTargetScaleFactor   = 1.0f;
 		float                throughputTargetScaleFactor = 1.0f;
 
-		bool useMaterialId = false;
+		// ADDITIONAL INPUTS
+		bool           useMaterialId            = false;
 		EncodingConfig materialIdEncodingConfig = {};
-		bool useTriangleId = false;
+		bool           useTriangleId            = false;
 		EncodingConfig triangleIdEncodingConfig = {};
-		bool useInstanceId = false;
+		bool           useInstanceId            = false;
 		EncodingConfig instanceIdEncodingConfig = {};
 
-		bool  scaleLossBlendedQ            = false;
-		bool  clampBsdfProb                = false;
-		float fractionBlendTrainPercentage = 0.2;
-
-		bool  learnInputRadiance = false;
-		float lossClamp          = 100.0f;
 
 		void resetUpdate()
 		{
 			isUpdated                                 = false;
 			trainingBatchGenerationSettings.isUpdated = false;
-			isDebuggingUpdated 					= false;
 		}
 
 		bool isAnyUpdated()
 		{
-			return isUpdated || trainingBatchGenerationSettings.isUpdated || isDebuggingUpdated;
+			return isUpdated || trainingBatchGenerationSettings.isUpdated;
 		}
 	};
 

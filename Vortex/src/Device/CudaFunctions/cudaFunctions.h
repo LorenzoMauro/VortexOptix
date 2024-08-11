@@ -36,11 +36,10 @@ namespace vtx::cuda
 		CUDABuffer* valuesBuffer = nullptr
 	);
 
-	void printDistribution(
+	float printDistribution(
 		CUDABuffer& buffer,
 		const int width,
 		const int height,
-		const math::vec3f& mean,
 		const math::vec3f& normal,
 		const math::vec3f& sample
 	);

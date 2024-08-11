@@ -120,6 +120,8 @@ namespace vtx::gui
 			settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Use Light Sample", &settings.useLightSample);
 			settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Train on Light Sample", &settings.trainOnLightSample);
 			settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Limit To First Bounce", &settings.limitToFirstBounce);
+			settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Skip Specular Samples", &settings.skipSpecular);
+			settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Skip Incomplete Batches", &settings.skipIncomplete);
 		}
 		
 		return settings.isUpdated;
@@ -157,50 +159,6 @@ namespace vtx::gui
 		{
 			ImGui::Indent();
 			settings.wasActive = settings.active;
-
-			if (ImGui::CollapsingHeader("Debug Info"))
-			{
-				ImGui::Indent();
-				settings.isDebuggingUpdated |= vtxImGui::halfSpaceDragInt("Depth To Debug", &settings.depthToDebug, 1, 0, 5, "%d", 0);
-				settings.isDebuggingUpdated |= vtxImGui::halfSpaceDragInt("Debug Pixel", &settings.debugPixelId, 1, 0, 500000, "%d", 0);
-				auto& buffers = onDeviceData->networkInterfaceData.resourceBuffers.networkDebugInfoBuffers;
-				int width = ImGui::GetContentRegionAvail().x;
-				int height = width / 2;
-				if (settings.doInference && settings.active && settings.debugPixelId >= 0)
-				{
-					NetworkDebugInfo debugInfo = getNetworkDebugInfoFromDevice();
-
-					std::vector<float> mixtureWeights = std::vector<float>(settings.mixtureSize);
-					buffers.mixtureWeightsBuffer.download(mixtureWeights.data());
-					std::string weights = "";
-					for (int i = 0; i < settings.mixtureSize; i++)
-					{
-						weights += std::to_string(mixtureWeights[i]) + " ";
-					}
-
-					vtxImGui::halfSpaceWidget("Position", vtxImGui::vectorGui, (float*)&debugInfo.position, true);
-					vtxImGui::halfSpaceWidget("Normal", vtxImGui::vectorGui, (float*)&debugInfo.normal, true);
-					vtxImGui::halfSpaceWidget("Wo", vtxImGui::vectorGui, (float*)&debugInfo.wo, true);
-					vtxImGui::halfSpaceWidget("Mean", vtxImGui::vectorGui, (float*)&debugInfo.distributionMean, true);
-					vtxImGui::halfSpaceWidget("Sample", vtxImGui::vectorGui, (float*)&debugInfo.sample, true);
-					vtxImGui::halfSpaceWidget("Bsdf Sample", vtxImGui::vectorGui, (float*)&debugInfo.bsdfSample, true);
-					vtxImGui::halfSpaceWidget("Neural Prob:", vtxImGui::booleanText, "%.10f", debugInfo.neuralProb);
-					vtxImGui::halfSpaceWidget("Bsdf Prob:", vtxImGui::booleanText, "%.10f", debugInfo.bsdfProb);
-					vtxImGui::halfSpaceWidget("Sampling Fraction Prob:", vtxImGui::booleanText, "%.10f", debugInfo.samplingFraction);
-					vtxImGui::halfSpaceWidget("Sample Prob:", vtxImGui::booleanText, "%.10f", debugInfo.wiProb);
-					vtxImGui::halfSpaceWidget("Mixture Weights : ", vtxImGui::booleanText, " %s", weights.c_str());
-
-					cuda::printDistribution(buffers.distributionPrintBuffer, width, height, debugInfo.distributionMean, debugInfo.normal, debugInfo.sample);
-					vtx::gui::popUpImageWindow("Distribution", buffers.distributionPrintBuffer, width, height, 3, true);
-
-				}
-				if (settings.active && settings.doTraining && settings.debugPixelId >= 0 && settings.depthToDebug == 0)
-				{
-					cuda::accumulateAtDebugBounce(buffers.accumulateBuffer, width, height, settings.debugPixelId);
-					vtx::gui::popUpImageWindow("Accumulate Spherical", buffers.accumulateBuffer, width, height, 3, true);
-				}
-				ImGui::Unindent();
-			}
 
 			settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Enable", &settings.active);
 			//settings.wasActive = (settings.active && !wasActive) ? false : true;
@@ -280,12 +238,15 @@ namespace vtx::gui
 					settings.isUpdated |= vtxImGui::halfSpaceDragFloat("Learning Rate", &settings.learningRate, 0.0000001f, 0, 1, "%.00010f", 0);
 					settings.isUpdated |= vtxImGui::halfSpaceDragFloat("Scheduler Gamma", &settings.schedulerGamma, 0.000001f, 0, 1, "%.00010f", 0);
 					settings.isUpdated |= vtxImGui::halfSpaceDragInt("Scheduler Step", &settings.schedulerStep);
-
+					settings.isUpdated |= vtxImGui::halfSpaceDragInt("L2 regularization Beta", &settings.l2WeightExp, 1, 0, 15);
+					settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Ema Inference Update", &settings.emaUpdate);
+					settings.isUpdated |= vtxImGui::halfSpaceDragFloat("Ema Weight Decay", &settings.emaDecay, 0.1f, 0, 1);
 				}
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 				if (ImGui::CollapsingHeader("Loss Settings"))
 				{
 					ImGui::Indent();
+					settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Tone Map Radiance", &settings.toneMapRadiance);
 					settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Learn Input Radiance", &settings.learnInputRadiance);
 					settings.isUpdated |= vtxImGui::halfSpaceDragFloat("Loss Smooth Clamp Value", &settings.lossClamp, 1.0f, 0.f, 1000);
 					settings.isUpdated |= vtxImGui::halfSpaceCheckbox("Clamp Bsdf Prob", &settings.clampBsdfProb);

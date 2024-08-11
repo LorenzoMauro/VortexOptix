@@ -15,6 +15,7 @@
 #include "Scene/Nodes/RendererSettings.h"
 
 namespace vtx {
+	struct DebugData;
 	struct NetworkInterface;
 	struct AccumulationWorkItem;
 	struct EscapedWorkItem;
@@ -404,6 +405,7 @@ namespace vtx {
 
         OnDeviceSettings settings;
 		OptixAabb              aabb;
+        DebugData*             debugData;
 	};
 
     enum TypeRay

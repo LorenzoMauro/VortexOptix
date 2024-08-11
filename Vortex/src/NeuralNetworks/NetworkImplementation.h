@@ -24,7 +24,7 @@ namespace vtx::network
 		virtual void reset() = 0;
 		virtual GraphsData& getGraphs() = 0;
 
-		static void prepareDataset();
+		void prepareDataset();
 
 		config::NetworkSettings* settings;
 	};

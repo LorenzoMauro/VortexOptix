@@ -469,6 +469,23 @@ namespace vtx::device
 		CUDABuffer                               toneMapperSettingsBuffer;
 	};
 
+	struct DebugDataBuffer
+	{
+		CUDABuffer bounceDataBuffers;
+		CUDABuffer mixtureWeightsBuffers;
+		CUDABuffer mixtureParamsBuffers;
+		CUDABuffer        distributionPrintBuffer;
+
+		~DebugDataBuffer()
+		{
+			VTX_INFO("ShutDown: Debug Data Buffers");
+			bounceDataBuffers.free();
+			mixtureWeightsBuffers.free();
+			mixtureParamsBuffers.free();
+			distributionPrintBuffer.free();
+		}
+	};
+
 	struct Buffers
 	{
 		static Buffers* getInstance();

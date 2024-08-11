@@ -190,6 +190,8 @@ namespace vtx::serializer
 
 			if (fileExtension == "xml")
             {
+                experimentManagerSaveData.isGroundTruthReady = false;
+                experimentManagerSaveData.groundTruthImage.clear();
                 cereal::XMLOutputArchive archiveOut(file);
                 archiveOut(experimentManagerSaveData);
             }

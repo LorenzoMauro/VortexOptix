@@ -7,6 +7,7 @@
 #include "Scene/NodeTypes.h"
 #include "Scene/Scene.h"
 #include "Scene/SceneIndexManager.h"
+#include "Device/DevicePrograms/DebugDownloadData.h"
 #define onDeviceData vtx::device::DeviceDataCoordinator::getInstance()
 
 namespace vtx
@@ -105,6 +106,8 @@ namespace vtx::device
 		DeviceData<DummyHostImage, NoiseComputationBuffers> noiseComputationData;
 		DeviceData<FrameBufferData, FrameBufferBuffers> frameBufferData;
 		DeviceData<LaunchParams, LaunchParamsBuffers> launchParamsData;
+
+		DeviceData<DebugData, DebugDataBuffer> debugData;
 
 		struct PrevWorkQueueInfo
 		{

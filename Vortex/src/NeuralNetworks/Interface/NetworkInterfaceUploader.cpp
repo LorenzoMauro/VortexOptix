@@ -30,7 +30,7 @@ namespace vtx
 		return onDeviceData->networkInterfaceData.resourceBuffers.trainingDataBuffers.structBuffer.castedPointer<TrainingData>();
 	}
 
-	Samples* uploadSamples(int maxTrainingData)
+	Samples* uploadSamples(int maxTrainingData, int maxBounces)
 	{
 		Samples data;
 		device::SamplesBuffers& buffers = onDeviceData->networkInterfaceData.resourceBuffers.samplesBuffers;
@@ -45,8 +45,10 @@ namespace vtx
 		data.Li = buffers.LiBuffer.alloc<math::vec3f>(maxTrainingData);
 		data.bsdf = buffers.bsdfBuffer.alloc<math::vec3f>(maxTrainingData);
 		data.bsdfProb = buffers.bsdfProbBuffer.alloc<float>(maxTrainingData);
-		const std::vector<int> validSamples(maxTrainingData, false);
+		data.wiProb = buffers.wiProbBuffer.alloc<float>(maxTrainingData);
+		const std::vector<int> validSamples(maxTrainingData, 0);
 		data.validSamples = buffers.validSamplesBuffer.upload(validSamples);
+		data.maxAllowedBounces = maxBounces;
 		return buffers.structBuffer.upload(data);
 	}
 
@@ -107,10 +109,9 @@ namespace vtx
 	{
 		NetworkInterface data;
 		data.trainingData = (maxTrainingDataSize != prev_maxTrainingDataSize) ? uploadTrainingData(maxTrainingDataSize) : getPreviousTrainingData();
-		data.samples = (maxTrainingDataSize != prev_maxTrainingDataSize) ? uploadSamples(maxTrainingDataSize) : getPreviousSamples();
+		data.samples = (maxTrainingDataSize != prev_maxTrainingDataSize) ? uploadSamples(maxTrainingDataSize, maxBounce) : getPreviousSamples();
 		data.inferenceData = (numberOfPixels != prev_numberOfPixels || type != prev_type || mixtureSize != prev_mixtureSize) ? uploadInferenceData(numberOfPixels, type, mixtureSize) : getPreviousInferenceData();
 		data.debugBuffers = (numberOfPixels != prev_numberOfPixels ) ? uploadNetworkInterfaceDebugBuffers(numberOfPixels) : getPreviousNetworkInterfaceDebugBuffers();
-		data.debugInfo = (mixtureSize != prev_mixtureSize || type != prev_type) ? uploadNetworkDebugInfo(mixtureSize, type, maxBounce) : getPreviousNetworkDebugInfo();
 
 		auto& buffers = onDeviceData->networkInterfaceData.resourceBuffers;
 		if (maxBounce != prev_maxBounce || numberOfPixels != prev_numberOfPixels)
@@ -162,54 +163,4 @@ namespace vtx
 		prev_mixtureSize = 0;
 		wasAllocated = false;
 	}
-
-	NetworkDebugInfo* getPreviousNetworkDebugInfo()
-	{
-		return onDeviceData->networkInterfaceData.resourceBuffers.networkDebugInfoBuffers.structBuffer.castedPointer<NetworkDebugInfo>();
-	}
-
-	NetworkDebugInfo getNetworkDebugInfoFromDevice()
-	{
-		CUDABuffer& buffer = onDeviceData->networkInterfaceData.resourceBuffers.networkDebugInfoBuffers.structBuffer;
-
-		NetworkDebugInfo data;
-		buffer.download(&data);
-
-		return data;
-	}
-
-	std::vector<math::vec3f> getDebugBouncesFromDevice(const int maxBounce)
-	{
-		CUDABuffer& buffer = onDeviceData->networkInterfaceData.resourceBuffers.networkDebugInfoBuffers.bouncesPositionsBuffer;
-		std::vector<math::vec3f> data(maxBounce);
-		buffer.download(data.data());
-		return data;
-	}
-
-	std::vector<BounceData> getPixelBounceData(const int pixel, const int maxBounce)
-	{
-		const CUDABuffer& maxPathLenBuff = onDeviceData->networkInterfaceData.resourceBuffers.maxPathLengthBuffer;
-		int nBounce;
-		cudaMemcpy(&nBounce, maxPathLenBuff.castedPointer<int>() + pixel, sizeof(int), cudaMemcpyDeviceToHost);
-		if(nBounce<0)
-		{
-			return {};
-		}
-		nBounce++;
-		const CUDABuffer& buffer = onDeviceData->networkInterfaceData.resourceBuffers.bounceDataBuffer;
-		std::vector<BounceData> data(nBounce);
-		cudaMemcpy(data.data(), buffer.castedPointer<BounceData>() + pixel * maxBounce, sizeof(BounceData) * nBounce, cudaMemcpyDeviceToHost);
-		return data;
-	}
-
-	NetworkDebugInfo* uploadNetworkDebugInfo(int mixtureSize, const network::config::DistributionType& type, const int maxBounce)
-	{
-		auto& buffers = onDeviceData->networkInterfaceData.resourceBuffers.networkDebugInfoBuffers;
-		NetworkDebugInfo data;
-		data.mixtureWeights = buffers.mixtureWeightsBuffer.alloc<float>(mixtureSize);
-		data.mixtureParameters = buffers.distributionParametersBuffer.alloc<float>(mixtureSize * distribution::Mixture::getDistributionParametersCount(type));
-		data.bouncesPositions = buffers.bouncesPositionsBuffer.alloc<math::vec3f>(maxBounce);
-		return buffers.structBuffer.upload(data);
-	}
-
 }

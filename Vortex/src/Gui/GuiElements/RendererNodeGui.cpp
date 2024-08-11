@@ -1,8 +1,10 @@
-#include "Gui/GuiProvider.h"
+﻿#include "Gui/GuiProvider.h"
 
 #include "imgui.h"
 #include "Core/Application.h"
+#include "Core/FileDialog.h"
 #include "Core/CustomImGui/CustomImGui.h"
+#include "Device/UploadCode/DeviceDataCoordinator.h"
 #include "Device/Wrappers/KernelTimings.h"
 #include "Scene/Nodes/Renderer.h"
 
@@ -211,7 +213,7 @@ namespace vtx::gui
 			vtxImGui::halfSpaceWidget("WaveFront Accumulate			", vtxImGui::booleanText, "%.2f ms", statistics.waveFrontAccumulate);
 			vtxImGui::halfSpaceWidget("WaveFront Reset				", vtxImGui::booleanText, "%.2f ms", statistics.waveFrontReset);
 			vtxImGui::halfSpaceWidget("WaveFront Fetch Queue Size	", vtxImGui::booleanText, "%.2f ms", statistics.waveFrontFetchQueueSize);
-			ImGui::Separator();																			 
+			ImGui::Separator();
 			vtxImGui::halfSpaceWidget("Neural Prepare Dataset		", vtxImGui::booleanText, "%.2f ms", statistics.neuralShuffleDataset);
 			vtxImGui::halfSpaceWidget("Neural Network Train			", vtxImGui::booleanText, "%.2f ms", statistics.neuralNetworkTrain);
 			vtxImGui::halfSpaceWidget("Neural Network Infer			", vtxImGui::booleanText, "%.2f ms", statistics.neuralNetworkInfer);
@@ -222,6 +224,8 @@ namespace vtx::gui
 	{
 		bool restartRendering = false;
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		restartRendering = vtxImGui::halfSpaceDragFloat("Tangent Rotation Deg", &settings.tangentRotation, 1.0f, 0.0f, 360.0f);
+		settings.isUpdated |= restartRendering;
 		if (ImGui::CollapsingHeader("General Settings"))
 		{
 			vtxImGui::halfSpaceWidget("Samples Per Pixels:", vtxImGui::booleanText, "%d", settings.iteration);
@@ -272,14 +276,19 @@ namespace vtx::gui
 			if (vtxImGui::halfSpaceWidget("Separate Thread", ImGui::Checkbox, (hiddenLabel + "_Separate Thread").c_str(), &settings.runOnSeparateThread))
 			{
 				settings.isUpdated = true;
-				restartRendering = true;
+				restartRendering   = true;
+			}
+			if (vtxImGui::halfSpaceWidget("View Background", ImGui::Checkbox, (hiddenLabel + "_ViewBackground").c_str(), &settings.viewBackground))
+			{
+				settings.isUpdated = true;
+				restartRendering   = true;
 			}
 		}
 		return restartRendering;
 	}
 
 	bool GuiProvider::drawEditGui(const std::shared_ptr<graph::Renderer>& renderNode)
-    {
+	{
 		const float availableWidth = ImGui::GetContentRegionAvail().x;
 		if (ImGui::CollapsingHeader("Renderer"))
 		{
@@ -287,6 +296,35 @@ namespace vtx::gui
 			ImGui::PushItemWidth(availableWidth);
 			vtxImGui::halfSpaceWidget("Node Id", ImGui::Text, std::to_string(renderNode->getUID()).c_str());
 			ImGui::Separator();
+
+			bool fetchSize = false;
+			if (vtxImGui::halfSpaceCheckbox("Fetch Size", &fetchSize))
+			{
+				renderNode->lockWidth  = renderNode->width;
+				renderNode->lockHeight = renderNode->height;
+			}
+
+			vtxImGui::halfSpaceDragInt("Frame Width", &renderNode->lockWidth, 1.0f, 1, 10000);
+			vtxImGui::halfSpaceDragInt("Frame Height", &renderNode->lockHeight, 1.0f, 1, 10000);
+			if (vtxImGui::halfSpaceCheckbox("Lock Size", &renderNode->isSizeLocked))
+			{
+				if (renderNode->isSizeLocked)
+				{
+					renderNode->isSizeLocked = false;
+					renderNode->resize(renderNode->lockWidth, renderNode->lockHeight);
+					renderNode->isSizeLocked = true;
+				}
+			}
+
+			bool saveImage = false;
+			if (vtxImGui::halfSpaceCheckbox("Save Image", &saveImage))
+			{
+				const std::string filePath = vtx::FileDialogs::saveFileDialog({"*.jpg"});
+				if (!filePath.empty())
+				{
+					renderNode->saveFrame(filePath);
+				}
+			}
 
 			bool restartRendering = false;
 
@@ -361,5 +399,5 @@ namespace vtx::gui
 		}
 
 		return false;
-    }
+	}
 }

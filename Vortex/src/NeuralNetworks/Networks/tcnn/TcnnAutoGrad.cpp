@@ -77,9 +77,9 @@ namespace torchTcnn
 	torch::autograd::variable_list ModuleFunctionBackward::backward(torch::autograd::AutogradContext* ctx,
 		const torch::autograd::tensor_list& gradOutputs)
 	{
-		const torch::autograd::variable_list saved   = ctx->get_saved_variables();
-		const at::Tensor&                     input   = saved[0];
-		const at::Tensor&                     params  = saved[1];
+		torch::autograd::variable_list saved   = ctx->get_saved_variables();
+		at::Tensor&                     input   = saved[0];
+		at::Tensor&                     params  = saved[1];
 		at::Tensor                           dOutput = saved[2];
 
 		const c10::intrusive_ptr<TcnnData> tcnnData = ctx->saved_data[TCNN_DATA].toCustomClass<TcnnData>();
@@ -144,9 +144,9 @@ namespace torchTcnn
 		}
 
 		const torch::autograd::variable_list saved  = ctx->get_saved_variables();
-		at::Tensor                           input  = saved[0];
-		at::Tensor                           params = saved[1];
-		at::Tensor                           output = saved[2];
+		const at::Tensor                           input  = saved[0];
+		const at::Tensor                           params = saved[1];
+		const at::Tensor                           output = saved[2];
 
 		// Assuming ModuleFunctionBackward is a class similar to ModuleFunctionForward
 		torch::autograd::variable_list out;
@@ -161,11 +161,11 @@ namespace torchTcnn
 			{
 				torch::NoGradGuard no_grad_guard; // Equivalent to `with torch.no_grad()`
 
-				const at::Tensor scaled_grad = dOutput * tcnnData->lossScale;
+				at::Tensor scaled_grad = dOutput * tcnnData->lossScale;
 				auto [inputGrad, paramsGrad] = tcnnData->nativeTcnnModule->bwd(tcnnData->nativeCtx, input, params, output, scaled_grad);
-
 				paramsGrad = (paramsGrad.defined()) ? paramsGrad / tcnnData->lossScale : nullTensorLike(params);
 				inputGrad = (inputGrad.defined()) ? inputGrad / tcnnData->lossScale : nullTensorLike(input);
+				// check if inputGrad or paramsGrad have inf or nan and set them to zero if so
 				out = { torch::Tensor(),  nullTensorToNone(inputGrad), nullTensorToNone(paramsGrad), torch::Tensor()};
 			}
 		}

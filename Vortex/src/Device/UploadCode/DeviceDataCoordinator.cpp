@@ -2,6 +2,7 @@
 
 #include "UploadFunctions.h"
 #include "Device/OptixWrapper.h"
+#include "Device/DevicePrograms/DebugDownloadData.h"
 #include "Scene/Graph.h"
 #include "Scene/Scene.h"
 
@@ -301,6 +302,13 @@ namespace vtx::device
 			}
 			isFrameIdUpdated = false;
 		}
+		
+		if(debugData.isDirty)
+		{
+			launchParamsData.editableHostImage().debugData = debugData.getDeviceImage();
+		}
+
+
 	}
 	void DeviceDataCoordinator::incrementFrameIteration()
 	{

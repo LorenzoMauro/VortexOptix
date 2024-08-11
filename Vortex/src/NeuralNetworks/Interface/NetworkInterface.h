@@ -7,10 +7,14 @@
 #include "NetworkInterfaceStructs.h"
 #include "NeuralNetworks/Config/NetworkSettings.h"
 #include "Device/DevicePrograms/nvccUtils.h"
+#include "Device/DevicePrograms/ToneMapper.h"
 
 namespace vtx
 {
-#define printInvalidCondition(condition) if (condition) {printf("Invalid condition file %s line %d condition %s\n", __FILE__, __LINE__, #condition); return;}
+//#define PRINT_CONDITION(condition) printf("Invalid condition file %s line %d condition %s\n", __FILE__, __LINE__, #condition)
+#define PRINT_CONDITION(condition)
+
+#define printInvalidCondition(condition) if (condition) {PRINT_CONDITION(condition); return;}
 	struct Samples
 	{
 		math::vec3f* position = nullptr;
@@ -19,13 +23,14 @@ namespace vtx
 		float* instanceId = nullptr;
 		float* triangleId = nullptr;
 		float* matId = nullptr;
-		math::vec3f* Lo;
-		math::vec3f* wi;
-		math::vec3f* Li;
-		math::vec3f* bsdf;
-		float* bsdfProb;
-		float* wiProb;
-		int* validSamples;
+		math::vec3f* Lo = nullptr;
+		math::vec3f* wi = nullptr;
+		math::vec3f* Li = nullptr;
+		math::vec3f* bsdf = nullptr;
+		float* bsdfProb = nullptr;
+		float* wiProb = nullptr;
+		int* validSamples = nullptr;
+		int maxAllowedBounces = 0;
 
 		cudaFunction static bool isNotValid(const float value)
 		{
@@ -39,20 +44,22 @@ namespace vtx
 
 		cudaFunction void registerBsdfSample(const int index, const BounceData& data)
 		{
-			//printInvalidCondition(isNotValid(data.hit.position));
-			//printInvalidCondition(isNotValid(data.wo));
-			//printInvalidCondition(isNotValid(data.hit.normal));
-			//printInvalidCondition(isNotValid((float)data.hit.instanceId));
-			//printInvalidCondition(isNotValid((float)data.hit.triangleId));
-			//printInvalidCondition(isNotValid((float)data.hit.matId));
-			//printInvalidCondition(isNotValid(data.bsdfSample.Lo));
-			//printInvalidCondition(isNotValid(data.bsdfSample.wi));
-			//printInvalidCondition(isNotValid(data.bsdfSample.Li));
-			//printInvalidCondition(isNotValid(data.bsdfSample.bsdf));
-			//printInvalidCondition(isNotValid(data.bsdfSample.bsdfProb));
-			//printInvalidCondition(data.bsdfSample.bsdfProb < 0.0000001f);
-			//printInvalidCondition(math::length(data.hit.normal) < 0.00001f);
-			//printInvalidCondition(math::length(data.wo) < 0.00001f);
+			validSamples[index] = 0;
+			printInvalidCondition(isNotValid(data.hit.position));
+			printInvalidCondition(isNotValid(data.wo));
+			printInvalidCondition(isNotValid(data.hit.normal));
+			printInvalidCondition(isNotValid((float)data.hit.instanceId));
+			printInvalidCondition(isNotValid((float)data.hit.triangleId));
+			printInvalidCondition(isNotValid((float)data.hit.matId));
+			printInvalidCondition(isNotValid(data.bsdfSample.Lo));
+			printInvalidCondition(isNotValid(data.bsdfSample.wi));
+			printInvalidCondition(isNotValid(data.bsdfSample.Li));
+			printInvalidCondition(isNotValid(data.bsdfSample.bsdf));
+			printInvalidCondition(isNotValid(data.bsdfSample.bsdfProb));
+			printInvalidCondition(gdt::isEqual(data.bsdfSample.bsdfProb ,0.0f));
+			printInvalidCondition(gdt::isEqual(data.bsdfSample.wiProb ,0.0f));
+			printInvalidCondition(gdt::isEqual(math::length(data.hit.normal) ,0.0f));
+			printInvalidCondition(gdt::isEqual(math::length(data.wo) ,0.0f));
 
 			position[index] = data.hit.position;
 			wo[index] = data.wo;
@@ -75,20 +82,21 @@ namespace vtx
 			{
 				return;
 			}
-			//printInvalidCondition(isNotValid(data.hit.position));
-			//printInvalidCondition(isNotValid(data.wo));
-			//printInvalidCondition(isNotValid(data.hit.normal));
-			//printInvalidCondition(isNotValid((float)data.hit.instanceId));
-			//printInvalidCondition(isNotValid((float)data.hit.triangleId));
-			//printInvalidCondition(isNotValid((float)data.hit.matId));
-			//printInvalidCondition(isNotValid(data.lightSample.Lo));
-			//printInvalidCondition(isNotValid(data.lightSample.wi));
-			//printInvalidCondition(isNotValid(data.lightSample.Li));
-			//printInvalidCondition(isNotValid(data.lightSample.bsdf));
-			//printInvalidCondition(isNotValid(data.lightSample.bsdfProb));
-			//printInvalidCondition(data.lightSample.bsdfProb < 0.0000001f);
-			//printInvalidCondition(math::length(data.hit.normal) < 0.001f);
-			//printInvalidCondition(math::length(data.wo) < 0.001f);
+			printInvalidCondition(isNotValid(data.hit.position));
+			printInvalidCondition(isNotValid(data.wo));
+			printInvalidCondition(isNotValid(data.hit.normal));
+			printInvalidCondition(isNotValid((float)data.hit.instanceId));
+			printInvalidCondition(isNotValid((float)data.hit.triangleId));
+			printInvalidCondition(isNotValid((float)data.hit.matId));
+			printInvalidCondition(isNotValid(data.lightSample.Lo));
+			printInvalidCondition(isNotValid(data.lightSample.wi));
+			printInvalidCondition(isNotValid(data.lightSample.Li));
+			printInvalidCondition(isNotValid(data.lightSample.bsdf));
+			printInvalidCondition(isNotValid(data.lightSample.bsdfProb));
+			printInvalidCondition(gdt::isEqual(data.lightSample.bsdfProb, 0.0f));
+			printInvalidCondition(gdt::isEqual(data.lightSample.wiProb, 0.0f));
+			printInvalidCondition(gdt::isEqual(math::length(data.hit.normal), 0.0f));
+			printInvalidCondition(gdt::isEqual(math::length(data.wo), 0.0f));
 
 			position[index] = data.hit.position;
 			wo[index] = data.wo;
@@ -105,10 +113,10 @@ namespace vtx
 			validSamples[index] = 1;
 		}
 
-		cudaFunction int getIndex(const int pixelId, const int bounce, const int maxBounce, bool isLightSample)
+		cudaFunction int getIndex(const int pixelId, const int bounce, bool isLightSample)
 		{
 			//return cuAtomicAdd(size, 1);
-			int id = pixelId * maxBounce * 2 + bounce;
+			int id = pixelId * maxAllowedBounces * 2 + bounce;
 			if (isLightSample)
 			{
 				id++;
@@ -118,33 +126,37 @@ namespace vtx
 
 		cudaFunction void registerSample(const int pixelId, const int maxBounce, const int bounce, const BounceData& p, const network::config::NetworkSettings& netSettings)
 		{
+			const int bsdfSampleIndex = getIndex(pixelId, bounce, false);
+			const int lightSampleIndex = getIndex(pixelId, bounce, true);
 			if (
-				//!p.bsdfSample.isSpecular &&
+				(netSettings.trainingBatchGenerationSettings.skipSpecular == false || !p.bsdfSample.isSpecular) &&
 				bounce < maxBounce &&
 				(netSettings.trainingBatchGenerationSettings.limitToFirstBounce == false || bounce == 0)
 				)
 			{
-				if (!netSettings.trainingBatchGenerationSettings.onlyNonZero) {
-					if (netSettings.trainingBatchGenerationSettings.trainOnLightSample)
-					{
-						registerLightSample(getIndex(pixelId, bounce, maxBounce, true), p);
-					}
-					if (bounce != maxBounce)
-					{
-						registerBsdfSample(getIndex(pixelId, bounce, maxBounce, false), p);
-					}
-				}
-				else
+				if (
+					(!netSettings.trainingBatchGenerationSettings.onlyNonZero || !math::isZero(p.bsdfSample.Lo))
+					&& bounce != maxBounce
+					)
 				{
-					if (!math::isZero(p.bsdfSample.Lo) && bounce != maxBounce)
-					{
-						registerBsdfSample(getIndex(pixelId, bounce, maxBounce, false), p);
-					}
-					if (!math::isZero(p.lightSample.Lo) && netSettings.trainingBatchGenerationSettings.trainOnLightSample)
-					{
-						registerLightSample(getIndex(pixelId, bounce, maxBounce, true), p);
-					}
+					registerBsdfSample(bsdfSampleIndex, p);
 				}
+				if (
+					(!netSettings.trainingBatchGenerationSettings.onlyNonZero || !math::isZero(p.lightSample.Lo))
+					&& netSettings.trainingBatchGenerationSettings.trainOnLightSample
+					)
+				{
+					registerLightSample(lightSampleIndex, p);
+				}
+				
+			}
+		}
+
+		cudaFunction void resetPixel(const int pixelId)
+		{
+			for (int i = 0; i < maxAllowedBounces * 2; i++)
+			{
+				validSamples[pixelId * maxAllowedBounces * 2 + i] = 0;
 			}
 		}
 	};
@@ -157,28 +169,28 @@ namespace vtx
 		float* instanceId = nullptr;
 		float* triangleId = nullptr;
 		float* matId = nullptr;
-		math::vec3f* Lo;
-		math::vec3f* wi;
-		math::vec3f* Li;
-		math::vec3f* bsdf;
-		float* bsdfProb;
-		float* wiProb;
+		math::vec3f* Lo = nullptr;
+		math::vec3f* wi = nullptr;
+		math::vec3f* Li = nullptr;
+		math::vec3f* bsdf = nullptr;
+		float* bsdfProb = nullptr;
+		float* wiProb = nullptr;
 
 		int nAlloc;
-		int* size;
+		int* size = nullptr;
 
 		cudaFunction void reset()
 		{
 			*size = 0;
 		}
 
-		cudaFunction void buildTrainingData(const int id, const Samples* samples)
+		cudaFunction void buildTrainingData(const int id, const Samples* samples, bool toneMapRadiance)
 		{
 			if(samples->validSamples[id]!=1)
 			{
 				return;
 			}
-			int index = cuAtomicAdd(size, 1);
+			const int index = cuAtomicAdd(size, 1);
 			position[index] = samples->position[id];
 			wo[index] = samples->wo[id];
 			normal[index] = samples->normal[id];
@@ -188,6 +200,11 @@ namespace vtx
 			Lo[index] = samples->Lo[id];
 			wi[index] = samples->wi[id];
 			Li[index] = samples->Li[id];
+			if (toneMapRadiance)
+			{
+				Lo[index] = toneMap({}, Lo[index]);
+				Li[index] = toneMap({}, Li[index]);
+			}
 			bsdf[index] = samples->bsdf[id];
 			bsdfProb[index] = samples->bsdfProb[id];
 			wiProb[index] = samples->wiProb[id];
@@ -207,7 +224,7 @@ namespace vtx
 		float* mixtureWeights = nullptr;
 		float* samplingFractionArray = nullptr;
 
-		int* size;
+		int* size = nullptr;
 
 		int                        nAlloc;
 		network::config::DistributionType  distributionType;
@@ -313,8 +330,6 @@ namespace vtx
 
 		NetworkInterfaceDebugBuffers* debugBuffers = nullptr;
 
-		NetworkDebugInfo* debugInfo = nullptr;
-
 		cudaFunction BounceData& get(unsigned pixel, unsigned bounce)
 		{
 			return path[pixel*maxAllowedPathLength + bounce];
@@ -391,14 +406,16 @@ namespace vtx
 			}
 		}
 
-		cudaFunction void finalizePath(unsigned pixel, unsigned width, unsigned height, const network::config::NetworkSettings& netSettings, bool registerTrainingSample = true)
+		cudaFunction void finalizePath(unsigned pixel, const network::config::NetworkSettings& netSettings, bool registerTrainingSample = true)
 		{
+			//samples->resetPixel(pixel);
 			const int maxBounce = maxPathLength[pixel];
 			if(maxBounce == -1)
 			{
 
 				return;
 			}
+
 
 			math::vec3f nextPLo = 0.0f;
 			for(int bounce = maxBounce; bounce >= 0; bounce--)
@@ -411,7 +428,7 @@ namespace vtx
 
 				if(registerTrainingSample)
 				{
-					samples->registerSample(pixel, maxAllowedPathLength, bounce, p, netSettings);
+					samples->registerSample(pixel, maxBounce, bounce, p, netSettings);
 				}
 				
 			}

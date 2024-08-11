@@ -69,8 +69,15 @@ namespace vtx::mdl {
         }
         if (!math::isZero(result.glossy))
         {
-            result.eventType = (mi::neuraylib::Bsdf_event_type)( result.eventType | mi::neuraylib::BSDF_EVENT_SPECULAR);
+            result.eventType = (mi::neuraylib::Bsdf_event_type)( result.eventType | mi::neuraylib::BSDF_EVENT_GLOSSY);
         }
+        // evidently the evaluation is able to pick almost delta functions for the pdf if the light sample exactly matches the reflection direction
+        // the pdf becomes extremely large as well as the glossy component
+        bool isDelta = (result.pdf > 1000000.0f && length(result.glossy) > 1000000.0f);// || length(result.bsdf) > 1.0f; // not sure about the bsdf condition but in theory for the conservation of energy it should be true
+        if (isDelta)
+        {
+	        result.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR;
+		}
         if(result.eventType == mi::neuraylib::BSDF_EVENT_ABSORB)
         {
 	        result.isValid = false;
@@ -93,38 +100,38 @@ namespace vtx::mdl {
             return;
         }
 
-        //const float cosTheta = math::dot(bsdfSample.nextDirection, normal);
-        //const math::vec3f bsdf = bsdfSample.bsdfOverPdf * (bsdfSample.pdf / cosTheta);
-        //const float bsdfNorm = math::length(bsdf);
+        const float cosTheta = math::dot(bsdfSample.nextDirection, normal);
+        const math::vec3f bsdf = bsdfSample.bsdfOverPdf * (bsdfSample.pdf / cosTheta);
+        const float bsdfNorm = math::length(bsdf);
 
-        ////change Type to specular if bsdfNorm > 1.0f
-        //if (bsdfNorm > 1.0f || (bsdfSample.pdf == 0.0f && !math::isZero(bsdfSample.bsdfOverPdf)))
-        //{
-        //    switch (bsdfSample.eventType)
-        //    {
-        //    case mi::neuraylib::BSDF_EVENT_DIFFUSE_REFLECTION:
-        //    {
-        //        bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_REFLECTION;
-        //    }
-        //    break;
-        //    case mi::neuraylib::BSDF_EVENT_DIFFUSE_TRANSMISSION:
-        //    {
-        //        bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_TRANSMISSION;
-        //    }
-        //    break;
-        //    case mi::neuraylib::BSDF_EVENT_GLOSSY_REFLECTION:
-        //    {
-        //        bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_REFLECTION;
-        //    }
-        //    break;
-        //    case mi::neuraylib::BSDF_EVENT_GLOSSY_TRANSMISSION:
-        //    {
-        //        bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_TRANSMISSION;
-        //    }
-        //    break;
-        //    }
+        //change Type to specular if bsdfNorm > 1.0f
+        if (bsdfNorm > 1.0f || (bsdfSample.pdf == 0.0f && !math::isZero(bsdfSample.bsdfOverPdf)))
+        {
+            switch (bsdfSample.eventType)
+            {
+            case mi::neuraylib::BSDF_EVENT_DIFFUSE_REFLECTION:
+            {
+                bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_REFLECTION;
+            }
+            break;
+            case mi::neuraylib::BSDF_EVENT_DIFFUSE_TRANSMISSION:
+            {
+                bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_TRANSMISSION;
+            }
+            break;
+            case mi::neuraylib::BSDF_EVENT_GLOSSY_REFLECTION:
+            {
+                bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_REFLECTION;
+            }
+            break;
+            case mi::neuraylib::BSDF_EVENT_GLOSSY_TRANSMISSION:
+            {
+                bsdfSample.eventType = mi::neuraylib::BSDF_EVENT_SPECULAR_TRANSMISSION;
+            }
+            break;
+            }
 
-        //}
+        }
     }
 
     // Importance sample the BSDF. 
@@ -171,7 +178,6 @@ namespace vtx::mdl {
         result.bsdfPdf = data.pdf;
 
         correctBsdfSample(result, mdlData->state.normal);
-
         if (!(result.eventType & mi::neuraylib::BSDF_EVENT_SPECULAR) && (result.eventType != mi::neuraylib::BSDF_EVENT_ABSORB)) {
             result.bsdf = result.bsdfOverPdf * result.bsdfPdf;
         }
@@ -179,6 +185,8 @@ namespace vtx::mdl {
         {
             result.bsdf = result.bsdfOverPdf;
 		}
+
+        result.bsdfEvaluation = evaluateBsdf(mdlData, surroundingIor, outgoingDirection, result.nextDirection);
 
         return result;
     }
@@ -272,7 +280,25 @@ namespace vtx::mdl {
         result.pdf = evalData.pdf;
         return result;
     }
-
+    __forceinline__ __device__ void printTransforms(float4* otw, float4* wto)
+    {
+    	printf(
+            "Object to World:\n"
+            "%f %f %f %f\n"
+            "%f %f %f %f\n"
+            "%f %f %f %f\n"
+            "World to Object:\n"
+            "%f %f %f %f\n"
+            "%f %f %f %f\n"
+            "%f %f %f %f\n"
+		, otw[0].x, otw[0].y, otw[0].z, otw[0].w
+		, otw[1].x, otw[1].y, otw[1].z, otw[1].w
+		, otw[2].x, otw[2].y, otw[2].z, otw[2].w
+		, wto[0].x, wto[0].y, wto[0].z, wto[0].w
+		, wto[1].x, wto[1].y, wto[1].z, wto[1].w
+		, wto[2].x, wto[2].y, wto[2].z, wto[2].w
+		);
+	}
     __forceinline__ __device__ MdlData mdlInit(const MdlRequest* request)
     {
         float4 oTwF4[3];
@@ -284,17 +310,20 @@ namespace vtx::mdl {
         MdlData mdlData{};
 
         const math::affine3f& objectToWorld = *request->hitProperties->oTw;
-        const math::affine3f& worldToObject = math::affine3f(objectToWorld.l.inverse(), objectToWorld.p);
+		const auto            lInv          = objectToWorld.l.inverse();
+        const math::affine3f& worldToObject = math::affine3f(lInv, -lInv * objectToWorld.p);
         objectToWorld.toFloat4(oTwF4);
         worldToObject.toFloat4(wToF4);
 
+        //printTransforms(oTwF4, wToF4);
+
         textureCoordinates[0] = request->hitProperties->uv;
-        textureBitangents[0] = request->hitProperties->bitangent;
         textureTangents[0] = request->hitProperties->tangent;
+        textureBitangents[0] = request->hitProperties->bitangent;
 
         textureCoordinates[1] = textureCoordinates[0];
-        textureBitangents[1] = textureBitangents[0];
         textureTangents[1] = textureTangents[0];
+        textureBitangents[1] = textureBitangents[0];
 
         mdlData.state.normal = request->hitProperties->shadingNormal;
         mdlData.state.geom_normal = request->hitProperties->trueNormal;
@@ -302,13 +331,13 @@ namespace vtx::mdl {
         mdlData.state.animation_time = 0.0f;
         mdlData.state.text_coords = textureCoordinates;
 
-    	mdlData.state.tangent_u = textureTangents;
-        mdlData.state.tangent_v = textureBitangents;
+    	mdlData.state.tangent_u = (mi::neuraylib::tct_float3*)textureTangents;
+        mdlData.state.tangent_v = (mi::neuraylib::tct_float3*)textureBitangents;
 
-        mdlData.state.text_results = textureResults;
+        mdlData.state.text_results = (mi::neuraylib::tct_float4*)textureResults;
         mdlData.state.ro_data_segment = nullptr;
-        mdlData.state.world_to_object = wToF4;
-        mdlData.state.object_to_world = oTwF4;
+        mdlData.state.world_to_object = (mi::neuraylib::tct_float4*)wToF4;
+        mdlData.state.object_to_world = (mi::neuraylib::tct_float4*)oTwF4;
         mdlData.state.object_id = request->hitProperties->instanceId;
         mdlData.state.meters_per_scene_unit = 1.0f;
 

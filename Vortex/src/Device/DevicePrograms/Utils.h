@@ -225,11 +225,10 @@ namespace vtx::utl
 		for (unsigned int i = 0; i < numberOfWeights; ++i)
 		{
 			runningSum += weights[i];
-			if (sample < runningSum)
+			if (sample <= runningSum)
 				return i;
 		}
 
-		printf("Error: selectFromWeights() failed to select a weight. Returning last index.\n");
 		return numberOfWeights - 1; // This should ideally not happen if weights are normalized and the sample is in [0.0f, 1.0f), but acts as a safeguard.
 	}
 }

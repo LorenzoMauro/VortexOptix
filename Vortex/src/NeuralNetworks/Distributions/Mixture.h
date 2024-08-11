@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef MIXTURE_H
 #define MIXTURE_H
 
@@ -15,13 +15,13 @@
 
 namespace vtx::distribution
 {
-    class Mixture
-    {
-    public:
-#ifndef CUDA_INTERFACE
-        static torch::Tensor finalizeParams(torch::Tensor& mixtureParameters, const network::config::DistributionType& type);
+	class Mixture
+	{
+	public:
+		#ifndef CUDA_INTERFACE
+		static torch::Tensor finalizeParams(torch::Tensor& mixtureParameters, const network::config::DistributionType& type);
 
-        static torch::Tensor prob(const torch::Tensor& x, const torch::Tensor& mixtureParams, const torch::Tensor& mixtureWeights, network::config::DistributionType type);
+		static torch::Tensor prob(const torch::Tensor& x, const torch::Tensor& mixtureParams, const torch::Tensor& mixtureWeights, network::config::DistributionType type);
 
 		static std::tuple<torch::Tensor, torch::Tensor> sample(const torch::Tensor& mixtureParams, const torch::Tensor& mixtureWeights, network::config::DistributionType type);
 
@@ -32,8 +32,8 @@ namespace vtx::distribution
 			network::GraphsData&              graphData,
 			const bool                        isTraining,
 			const int                         depth = 0);
-		
-#else
+
+		#else
 		__forceinline__ __device__ static float evaluate(const float* mixtureParameters, const float* weights, const int mixtureSize, network::config::DistributionType type, const math::vec3f& sample)
 		{
 			float prob = 0.0f;
@@ -46,7 +46,7 @@ namespace vtx::distribution
 					prob += weights[i] * SphericalGaussian::prob(params, sample);
 				}
 			}
-			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE)
+			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE || type == network::config::D_NASG_TRIG_NORMALIZED)
 			{
 				for (int i = 0; i < mixtureSize; ++i)
 				{
@@ -71,7 +71,7 @@ namespace vtx::distribution
 					meanAxis += weights[i] * mean;
 				}
 			}
-			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE)
+			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE || type == network::config::D_NASG_TRIG_NORMALIZED)
 			{
 				for (int i = 0; i < mixtureSize; ++i)
 				{
@@ -96,7 +96,7 @@ namespace vtx::distribution
 					meanConcentration += weights[i] * k;
 				}
 			}
-			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE)
+			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE || type == network::config::D_NASG_TRIG_NORMALIZED)
 			{
 				for (int i = 0; i < mixtureSize; ++i)
 				{
@@ -116,7 +116,7 @@ namespace vtx::distribution
 			{
 				return 0.0f;
 			}
-			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE)
+			else if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE || type == network::config::D_NASG_TRIG_NORMALIZED)
 			{
 				for (int i = 0; i < mixtureSize; ++i)
 				{
@@ -139,7 +139,7 @@ namespace vtx::distribution
 			{
 				sample = SphericalGaussian::sample(params, seed);
 			}
-			else if(type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE)
+			else if(type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE || type == network::config::D_NASG_TRIG_NORMALIZED)
 			{
 				sample = Nasg::sample(params, seed);
 			}
@@ -147,14 +147,14 @@ namespace vtx::distribution
 			return sample;
 		}
 
-#endif
+		#endif
 		__forceinline__ __device__ __host__ static int getDistributionParametersCount(const network::config::DistributionType& type, const bool forNetwork = false)
 		{
 			if (type == network::config::D_SPHERICAL_GAUSSIAN)
 			{
-				return SphericalGaussian::getParametersCount();
+				return SphericalGaussian::getParametersCount(forNetwork);
 			}
-			if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE)
+			if (type == network::config::D_NASG_TRIG || type == network::config::D_NASG_ANGLE || type == network::config::D_NASG_AXIS_ANGLE || type == network::config::D_NASG_TRIG_NORMALIZED)
 			{
 				return Nasg::getParametersCount(type, forNetwork);
 			}
@@ -162,7 +162,6 @@ namespace vtx::distribution
 		}
 	};
 }
-
 
 
 #endif

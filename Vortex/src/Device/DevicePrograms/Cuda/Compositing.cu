@@ -213,7 +213,9 @@ namespace vtx
 		break;
 		case(FB_DEBUG_1):
 		{
-			outputBuffer[fbIndex] = math::vec4f(frameBuffer->debugColor1[fbIndex], 1.0f);
+			input = frameBuffer->debugColor1;
+			normalizeBySamples = true;
+			//outputBuffer[fbIndex] = math::vec4f(frameBuffer->debugColor1[fbIndex], 1.0f);
 			dotoneMap = false;
 		}
 		break;

@@ -75,6 +75,7 @@ namespace vtx::mdl
         BsdfEventType eventType = mi::neuraylib::BSDF_EVENT_ABSORB;
         bool          isValid = false;
         bool          isComputed = false;
+        BsdfEvalResult bsdfEvaluation;
 
         __device__ void print(const char* message="")
         {

@@ -371,21 +371,27 @@ namespace vtx::serializer
 					if(exp.completed)
 					{
 						experimentManager.experimentSet.emplace(exp.getStringHashKey());
-						experimentManager.experimentMinHeap.push({ experiment.mape.back(), experimentManager.experiments.size() - 1});
-						if (experiment.mape.back() < experimentManager.bestMapeScore)
+						if(exp.networkSettings.active && (!isnan(exp.averageMape) && !isnan(exp.averageMse) && !isinf(exp.averageMape) && !isinf(exp.averageMse)))
 						{
-							experimentManager.bestMapeScore = experiment.mape.back();
-							experimentManager.bestExperimentIndex = experimentManager.experiments.size() - 1;
-							exp.displayExperiment = true;
-						}
-						else
-						{
-							exp.displayExperiment = false;
+							auto& minHeap = experiment.rendererSettings.samplingTechnique == S_MIS ? experimentManager.misExperimentMinHeap : experimentManager.bsdfExperimentMinHeap;
+							float& bestMapeScore = experiment.rendererSettings.samplingTechnique == S_MIS ? experimentManager.misBestMapeScore : experimentManager.bsdfBestMapeScore;
+							float& bestMseScore = experiment.rendererSettings.samplingTechnique == S_MIS ? experimentManager.misBestMseScore : experimentManager.bsdfBestMseScore;
+
+							minHeap.push({ experiment.mape.back(), experimentManager.experiments.size() - 1 });
+							if (experiment.mape.back() < bestMapeScore)
+							{
+								bestMapeScore = experiment.mape.back();
+								bestMseScore = experimentManager.experiments.size() - 1;
+								exp.displayExperiment = true;
+							}
+							else
+							{
+								exp.displayExperiment = false;
+							}
 						}
 					}
 					else
 					{
-						experimentManager.experimentQueue.push_back(exp);
 						experimentManager.experiments.pop_back();
 					}
 				}

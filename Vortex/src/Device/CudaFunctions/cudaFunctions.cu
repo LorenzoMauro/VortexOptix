@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "ErrorTypes.h"
 #include "Device/DevicePrograms/nvccUtils.h"
 #include "Core/Math.h"
@@ -68,10 +68,10 @@ namespace vtx::cuda{
 		const int width,
 		const int height,
 		const LaunchParams * const params,
-		const math::vec3f& mean,
 		const math::vec3f& normal,
 		const math::vec3f& sample,
-		math::vec3f* buffer
+		math::vec3f* buffer,
+		float* pdfBuffer
 	)
 	{
 		const float x = (int)(id % width) / (float)width; //range in [0, 1]
@@ -79,18 +79,15 @@ namespace vtx::cuda{
 		const float u = x*2.0f-1.0f; //range in [-1, 1]
 		const float v = y*2.0f-1.0f; //range in [-1, 1]
 		const float theta = M_PI * u;  // Horizontal angle, azimuthal
-		const float phi = acosf(v);  // Vertical angle, polar
+		const float phi = M_PI * (1.0f-y);    // Vertical angle, polar
 		
 		const math::vec3f dir = math::vec3f(
 			sinf(phi) * cosf(theta),  // x
 			sinf(phi) * sinf(theta),  // y
 			cosf(phi)                 // z
 		);
-		if(length(dir-mean) < 0.04f)
-		{
-			buffer[id] = math::vec3f(1.0f, 0.0f, 1.0f);
-			return;
-		}
+
+
 		if (length(dir-normal) < 0.04f)
 		{
 			buffer[id] = math::vec3f(0.0f, 1.0f, 0.5f);
@@ -102,8 +99,9 @@ namespace vtx::cuda{
 			return;
 		}
 
-		const float* mixtureWeights = params->networkInterface->debugInfo->mixtureWeights;
-		const float* mixtureParams = params->networkInterface->debugInfo->mixtureParameters;
+		const int depth = params->debugData->debugDepth;
+		const float* mixtureWeights = params->debugData->bounceData[depth].mixtureWeigths;
+		const float* mixtureParams = params->debugData->bounceData[depth].mixtureParameters;
 		if (mixtureWeights == nullptr || mixtureParams == nullptr)
 		{
 			buffer[id] = math::vec3f(0.0f);
@@ -113,13 +111,18 @@ namespace vtx::cuda{
 		const auto type = params->settings.neural.distributionType;
 		const float pdf = distribution::Mixture::evaluate(mixtureParams, mixtureWeights, mixtureSize, type, dir);
 		buffer[id] = logViridisMagmaColorMap(pdf);
+
+		float dTheta = 2.0f * M_PI / width;
+		float dPhi = M_PI / height;
+		float dA = sin(phi) * dPhi * dTheta;
+		float dPdA = pdf * dA;
+		cuAtomicAdd(pdfBuffer, dPdA);
 	}
 
-	void printDistribution(
+	float printDistribution(
 		CUDABuffer& buffer,
 		const int width,
 		const int height,
-		const math::vec3f& mean,
 		const math::vec3f& normal,
 		const math::vec3f& sample
 	)
@@ -127,13 +130,20 @@ namespace vtx::cuda{
 		if (buffer.bytesSize() != width * height * sizeof(math::vec3f))
 			buffer.resize(width * height * sizeof(math::vec3f));
 
+		CUDABuffer pdfBuffer;
+		pdfBuffer.upload(0.0f);
+		float* pdfBufferPtr = pdfBuffer.castedPointer<float>();
 		LaunchParams* params = onDeviceData->launchParamsData.getDeviceImage();
 		gpuParallelFor(eventNames[K_DISTRIBUTION_PRINT],
 		width * height,
-		[width, height, params, mean, normal, sample, bufferPtr = buffer.castedPointer<math::vec3f>()] __device__(const int id)
+		[width, height, params, normal, sample, bufferPtr = buffer.castedPointer<math::vec3f>(), pdfBufferPtr] __device__(const int id)
 		{
-			printDistribution(id, width, height, params, mean, normal, sample, bufferPtr);
+			printDistribution(id, width, height, params,normal, sample, bufferPtr, pdfBufferPtr);
 		});
+
+		float pdf;
+		cudaMemcpy(&pdf, pdfBufferPtr, sizeof(float), cudaMemcpyDeviceToHost);
+		return pdf;
 	}
 	static const int kernelSize = 1;
 
@@ -356,11 +366,11 @@ namespace vtx::cuda{
 
 			const math::vec3f delta = (inputPtr[id] - referencePtr[id]);
 
-			const float mse = sum(delta * delta) / 3.0f;
-			const float mape = sum(abs(delta) / (referencePtr[id] + 0.01f)) / 3.0f;
+			const float mse = sum((delta * delta) / ((referencePtr[id])*(referencePtr[id]) + 0.001f)) / 3.0f;
+			const float mape = sum(abs(delta) / (referencePtr[id] + 0.001f)) / 3.0f;
 
 			errorMapsPtr[size*(int)ErrorType::MAPE + id] = mape;
-			errorMapsPtr[size * (int)ErrorType::MSE + id] = mse * 10.0f;
+			errorMapsPtr[size * (int)ErrorType::MSE + id] = mse;
 
 			increaseSumAndCount(errorsSumPtr[(int)ErrorType::MSE], mse);
 			increaseSumAndCount(errorsSumPtr[(int)ErrorType::MAPE], mape);

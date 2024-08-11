@@ -51,6 +51,7 @@ namespace vtx::network
 		void reset() override;
 
 		void train() override;
+		void emaUpdate();
 		//void registerTensorPlot(GraphType graphType, const torch::Tensor& tensor);
 		//void addTensorsToPlot();
 
@@ -68,10 +69,8 @@ namespace vtx::network
 
 
 		InputTensors generateInputTensors(
-			int                      batchDim,
-			const InputDataPointers& inputPointers,
-			const torch::Tensor& minExtents,
-			const torch::Tensor& deltaExtents);
+			const int                batchDim,
+			const InputDataPointers& inputPointers);
 
 		std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> splitGuidingOutput(const torch::Tensor& rawOutput);
 		std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> finalizeGuidingOutput(torch::Tensor& rawMixtureParameters, const torch::Tensor& rawMixtureWeights,const torch::Tensor& rawSamplingFraction);
@@ -94,6 +93,7 @@ namespace vtx::network
 
 
 		torchTcnn::TcnnModule mlpBase;
+		torchTcnn::TcnnModule mlpInference;
 		torchTcnn::TcnnModule auxiliaryMlp;
 
 		int outputDim;

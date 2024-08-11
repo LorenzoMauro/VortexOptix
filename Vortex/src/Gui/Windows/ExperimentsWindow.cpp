@@ -8,6 +8,7 @@
 #include "Gui/PlottingWrapper.h"
 #include "Gui/GuiProvider.h"
 #include "Gui/GuiElements/ImageWindowPopUp.h"
+#include "NeuralNetworks/Config/NetSettingGenerators.h"
 #include "Scene/Nodes/Renderer.h"
 #include "Scene/Scene.h"
 #include "Serialization/Serializer.h"
@@ -141,12 +142,7 @@ namespace vtx
 
 		if (ImGui::Button("Delete All Experiments", buttonSize))
 		{
-			for (auto& exp : em.experiments)
-			{
-				em.experimentSet.erase(exp.getStringHashKey());
-			}
-			em.experiments.clear();
-			em.currentExperiment = 0;
+			em.cleanExperiments();
 		}
 
 		if (em.isGroundTruthReady)
@@ -164,6 +160,45 @@ namespace vtx
 			if (ImGui::Button("Stop Experiment", buttonSize))
 			{
 				stopExperiment();
+			}
+
+			if (ImGui::Button("Fetch Best Guess", buttonSize))
+			{
+				const graph::Scene*                     scene            = graph::Scene::get();
+				const std::shared_ptr<graph::Renderer>& renderer         = scene->renderer;
+				renderer->settings.isUpdated                             = true;
+				renderer->waveFrontIntegrator.settings.isUpdated         = true;
+				renderer->waveFrontIntegrator.network.settings           = network::config::getBestGuess();
+				renderer->waveFrontIntegrator.network.settings.isUpdated = true;
+				renderer->waveFrontIntegrator.network.reset();
+				renderer->restart();
+			}
+
+
+			if (ImGui::Button("Fetch NPM", buttonSize))
+			{
+				const graph::Scene* scene = graph::Scene::get();
+				const std::shared_ptr<graph::Renderer>& renderer = scene->renderer;
+				renderer->settings.isUpdated = true;
+				renderer->waveFrontIntegrator.settings.isUpdated = true;
+				renderer->waveFrontIntegrator.network.settings = network::config::getSOTA();
+				renderer->waveFrontIntegrator.network.settings.isUpdated = true;
+				renderer->waveFrontIntegrator.network.reset();
+				renderer->restart();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Fetch NASG", buttonSize))
+			{
+				const graph::Scene* scene = graph::Scene::get();
+				const std::shared_ptr<graph::Renderer>& renderer = scene->renderer;
+				renderer->settings.isUpdated = true;
+				renderer->waveFrontIntegrator.settings.isUpdated = true;
+				renderer->waveFrontIntegrator.network.settings = network::config::getNasgSOTA();
+				renderer->waveFrontIntegrator.network.settings.isUpdated = true;
+				renderer->waveFrontIntegrator.network.reset();
+				renderer->restart();
 			}
 
 			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -243,6 +278,19 @@ namespace vtx
 			ImGui::PushID(i);
 			if (ImGui::CollapsingHeader((experiment.name).c_str()))
 			{
+				if (ImGui::Button("Fetch Settings", buttonSize))
+				{
+					const graph::Scene* scene = graph::Scene::get();
+					const std::shared_ptr<graph::Renderer>& renderer = scene->renderer;
+					renderer->settings = experiment.rendererSettings;
+					renderer->settings.isUpdated = true;
+					renderer->waveFrontIntegrator.settings = experiment.wavefrontSettings;
+					renderer->waveFrontIntegrator.settings.isUpdated = true;
+					renderer->waveFrontIntegrator.network.settings = experiment.networkSettings;
+					renderer->waveFrontIntegrator.network.settings.isUpdated = true;
+					renderer->waveFrontIntegrator.network.reset();
+					renderer->restart();
+				}
 				gui::GuiProvider::drawEditGui(experiment);
 
 				if (ImGui::Button("Delete", buttonSize))

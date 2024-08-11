@@ -15,8 +15,8 @@ namespace torchTcnn
         seed = _seed;
         params = register_parameter("params", nativeTcnnModule.initialParams(seed), true);
         loss_scale = default_loss_scale(nativeTcnnModule.paramPrecision());
-		//overflowLayer = OverflowLayer();
-		//register_module("overflowLayer", overflowLayer);
+		//loss_scale = 65536.0f;
+		//loss_scale = 1.0f;
     }
 
     torch::Tensor TcnnModuleImpl::forward(torch::Tensor x) {

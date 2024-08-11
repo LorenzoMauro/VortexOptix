@@ -67,16 +67,20 @@ namespace vtx::network
 		}
 
 		mlpBase = torchTcnn::TcnnModule(mainInputSize, outputDim, encodingSettings, torchTcnn::getNetworkSettings(settings->mainNetSettings), 1337);
+		if(settings->emaUpdate)
+		{
+			mlpInference = torchTcnn::TcnnModule(mainInputSize, outputDim, encodingSettings, torchTcnn::getNetworkSettings(settings->mainNetSettings), 1337);
+		}
+		const double eps = std::pow(10, -settings->adamEps);
 		if (settings->useAuxiliaryNetwork)
 		{
 			auto netSettings = torchTcnn::getNetworkSettings(settings->auxiliaryNetSettings);
 			auto auxInputSettings = torchTcnn::getEncodingSettings(auxFeatureSize, settings->auxiliaryInputSettings);
 			auxiliaryMlp = torchTcnn::TcnnModule(settings->totAuxInputSize, mainOutputSize, auxInputSettings, netSettings, 1440);
-			optimizer = std::make_shared<torch::optim::Adam>(std::vector<torch::optim::OptimizerParamGroup>{mlpBase->parameters(), auxiliaryMlp->parameters()}, torch::optim::AdamOptions(settings->learningRate).amsgrad(true));
+			optimizer = std::make_shared<torch::optim::Adam>(std::vector<torch::optim::OptimizerParamGroup>{mlpBase->parameters(), auxiliaryMlp->parameters()}, torch::optim::AdamOptions(settings->learningRate).amsgrad(true).eps(eps));
 		}
 		else
 		{
-			double eps = std::pow(10, -settings->adamEps);
 			optimizer = std::make_shared<torch::optim::Adam>(mlpBase->parameters(), torch::optim::AdamOptions(settings->learningRate).amsgrad(true).eps(eps));
 		}
 
@@ -168,7 +172,11 @@ namespace vtx::network
 
 		if (settings->useEntropyLoss)
 		{
-			const torch::Tensor entropyLoss = settings->entropyWeight * guidingEntropyLoss(neuralProb);
+			//const torch::Tensor entropyLoss = settings->entropyWeight * guidingEntropyLoss(neuralProb);
+			// mixture weights entropy loss
+			const torch::Tensor mixturesEntropy = (-mixtureWeights * torch::log(mixtureWeights + bEps)).mean(1);
+			torch::Tensor entropyLoss = (-mixturesEntropy).mean();
+			entropyLoss = settings->entropyWeight * entropyLoss;
 			pgLoss += entropyLoss;
 			if (settings->plotGraphs)
 			{
@@ -188,15 +196,31 @@ namespace vtx::network
 			pgLoss += (1.0f - lossBlendFactor())*auxLoss;
 
 		}
+
+		// L2 Regularization term
+		if(settings->l2WeightExp>0)
+		{
+			torch::Tensor& params = mlpBase->params;
+			double beta = std::pow(10.0, -settings->l2WeightExp);
+			const torch::Tensor l2_reg = (beta * params.pow(2)).sum();
+			pgLoss += l2_reg;
+		}
+
 		pgLoss.backward();
 
-		torch::nn::utils::clip_grad_norm_(mlpBase->parameters(), 1.0);
+		//torch::nn::utils::clip_grad_norm_(mlpBase->parameters(), 1.0);
 
 		if (TensorDebugger::analyzeGradients()) {
+			VTX_ERROR("Gradients are NAN or INF\n");
 			return; // NAN or INF gradients
 		}
 		optimizer->step();
 		scheduler->step();
+
+		if(settings->emaUpdate)
+		{
+			emaUpdate();
+		}
 
 		if (settings->plotGraphs)
 		{
@@ -208,6 +232,18 @@ namespace vtx::network
 			distribution::Mixture::setGraphData(settings->distributionType, mixtureParameters, mixtureWeights, graphs, true);
 		}
 
+	}
+
+	void PGNet::emaUpdate()
+	{
+		if (trainingStep == 0) {
+			// Initialize EMA weights with the same data and device as model weights
+			mlpInference->params = mlpBase->params;
+		}
+		else {
+			// Update EMA weights
+			mlpInference->params = settings->emaDecay * mlpBase->params + (1 - settings->emaDecay) * mlpInference->params;
+		}
 	}
 
 	void PGNet::inference(const int& depth)
@@ -240,7 +276,15 @@ namespace vtx::network
 		{
 			input = torch::cat({ input, inputTensors.instanceId }, -1);
 		}
-		const torch::Tensor rawOutput = mlpBase->forward(input);
+		torch::Tensor rawOutput;
+		if(!settings->emaUpdate)
+		{
+			rawOutput = mlpBase->forward(input);
+		}
+		else
+		{
+			rawOutput = mlpInference->forward(input);
+		}
 		TRACE_TENSOR(rawOutput);
 		auto [mixtureParameters, mixtureWeights, c] = guidingForward(rawOutput);
 		if (settings->samplingFractionBlend)
@@ -255,14 +299,19 @@ namespace vtx::network
 			c = torch::clamp(c, 0.0f, settings->sfClampValue);
 		}
 
+		if(settings->constantSamplingFraction)
+		{
+			c = torch::ones_like(c) * settings->constantSamplingFractionValue;
+		}
+
 		TRACE_TENSOR(c);
 		TRACE_TENSOR(mixtureParameters);
 		//print first 10 batches of mixturePrameters
 		TRACE_TENSOR(mixtureWeights);
 		if (settings->plotGraphs)
 		{
-
-			graphs.addData(SAMPLING_FRACTION_PLOT, "Sampling Fraction Inference", c.mean().item<float>(), depth);
+			float samplingFraction = c.mean().item<float>();
+			graphs.addData(SAMPLING_FRACTION_PLOT, "Sampling Fraction Inference", samplingFraction, depth);
 			distribution::Mixture::setGraphData(settings->distributionType, mixtureParameters, mixtureWeights, graphs, false, depth);
 		}
 
@@ -342,6 +391,13 @@ namespace vtx::network
 			if (i == numBatches)
 			{
 				if (remainder == 0) break;
+				if (remainder < batchSize)
+				{
+					if (settings->trainingBatchGenerationSettings.skipIncomplete || i > 0)
+					{
+						break;
+					}
+				}
 				endIdx = startIdx + remainder;
 			}
 
@@ -403,10 +459,6 @@ namespace vtx::network
 		}
 		inputPointers.wiProb = buffers.wiProbBuffer.castedPointer<float>();
 
-		const auto          aabb = onDeviceData->launchParamsData.getHostImage().aabb;
-		const torch::Tensor minExtents = torch::tensor({ aabb.minX, aabb.minY, aabb.minZ }).to(device).to(torch::kFloat);
-		const torch::Tensor maxExtents = torch::tensor({ aabb.maxX, aabb.maxY, aabb.maxZ }).to(device).to(torch::kFloat);
-		const torch::Tensor deltaExtents = maxExtents - minExtents;
 
 
 		CUDABuffer trainingDataSizeBuffer = buffers.sizeBuffer;
@@ -418,7 +470,7 @@ namespace vtx::network
 			return;
 		}
 
-		InputTensors output = generateInputTensors(trainingDataSize, inputPointers, minExtents, deltaExtents);
+		InputTensors output = generateInputTensors(trainingDataSize, inputPointers);
 		TRACE_TENSOR(output.position);
 		TRACE_TENSOR(output.wo);
 		TRACE_TENSOR(output.normal);
@@ -426,7 +478,10 @@ namespace vtx::network
 		TRACE_TENSOR(output.bsdfProb);
 		TRACE_TENSOR(output.outRadiance);
 
+
 		shuffle(output);
+		//auto bsdfwiProb = torch::stack({ output.bsdfProb, output.wiProb }, 1);
+		//PRINT_TENSOR_SLICE(bsdfwiProb);
 		sliceToBatches(output);
 	}
 
@@ -456,14 +511,7 @@ namespace vtx::network
 		{
 			inputPointers.instanceId = buffers.instanceIdBuffer.castedPointer<float>();
 		}
-
-		const auto          aabb = onDeviceData->launchParamsData.getHostImage().aabb;
-		const torch::Tensor minExtents = torch::tensor({ aabb.minX, aabb.minY, aabb.minZ }).to(device).to(torch::kFloat);
-		const torch::Tensor maxExtents = torch::tensor({ aabb.maxX, aabb.maxY, aabb.maxZ }).to(device).to(torch::kFloat);
-		const torch::Tensor deltaExtents = maxExtents - minExtents;
-
-
-		InputTensors output = generateInputTensors(*inferenceSize, inputPointers, minExtents, deltaExtents);
+		InputTensors output = generateInputTensors(*inferenceSize, inputPointers);
 		TRACE_TENSOR(output.position);
 		TRACE_TENSOR(output.wo);
 		TRACE_TENSOR(output.normal);
@@ -491,21 +539,37 @@ namespace vtx::network
 		return tensor;
 	}
 
-	InputTensors PGNet::generateInputTensors(const int batchDim, const InputDataPointers& inputPointers, const torch::Tensor& minExtents, const torch::Tensor& deltaExtents)
+	InputTensors PGNet::generateInputTensors(const int batchDim, const InputDataPointers& inputPointers)
 	{
 		InputTensors tensors;
 
 		tensors.position = pointerToTensor(inputPointers.position, batchDim, 3);
 		if (doNormalizePosition())
 		{
-			//#ifdef _DEBUG
+
+			auto          aabb = onDeviceData->launchParamsData.getHostImage().aabb;
+			// inflate aabb
+			constexpr float percentage = 0.005f;
+			const float dx = aabb.maxX - aabb.minX;
+			const float dy = aabb.maxY - aabb.minY;
+			const float dz = aabb.maxZ - aabb.minZ;
+			aabb.minX -= dx * percentage;
+			aabb.minY -= dy * percentage;
+			aabb.minZ -= dz * percentage;
+			aabb.maxX += dx * percentage;
+			aabb.maxY += dy * percentage;
+			aabb.maxZ += dz * percentage;
+			const torch::Tensor minExtents = torch::tensor({ aabb.minX, aabb.minY, aabb.minZ }).to(device).to(torch::kFloat);
+			const torch::Tensor maxExtents = torch::tensor({ aabb.maxX, aabb.maxY, aabb.maxZ }).to(device).to(torch::kFloat);
+			const torch::Tensor deltaExtents = maxExtents - minExtents;
 			if (!deltaExtents.eq(0).any().item<bool>())
 			{
+				//PRINT_TENSOR_ALWAYS("minExtents",minExtents);
+				//PRINT_TENSOR_ALWAYS("maxExtents", deltaExtents);
+				//PRINT_TENSOR_SLICE(tensors.position);
 				tensors.position = (tensors.position - minExtents) / deltaExtents;
+				//PRINT_TENSOR_SLICE(tensors.position);
 			}
-			//#else
-						//tensors.position = (tensors.position - minExtents) / deltaExtents;
-			//#endif
 		}
 		tensors.wo = pointerToTensor(inputPointers.wo, batchDim, 3);
 		tensors.normal = pointerToTensor(inputPointers.normal, batchDim, 3);
@@ -547,7 +611,7 @@ namespace vtx::network
 	{
 		torch::Tensor mixtureParameters = distribution::Mixture::finalizeParams(rawMixtureParameters, settings->distributionType);
 		torch::Tensor mixtureWeights = softmax(rawMixtureWeights, 1);
-		torch::Tensor cTensor = sigmoid(rawSamplingFraction);
+		torch::Tensor cTensor = sigmoid(rawSamplingFraction/2.0f);
 		TRACE_TENSOR(mixtureParameters);
 		TRACE_TENSOR(mixtureWeights);
 		TRACE_TENSOR(cTensor);
@@ -573,14 +637,33 @@ namespace vtx::network
 		return output;
 	}
 
+	void printMinMaxLines(const torch::Tensor& target, const std::vector<torch::Tensor>& tensors) {
+		// Find the indices of min and max values in the target tensor
+		auto minIndex = target.argmin().item<int64_t>();
+		auto maxIndex = target.argmax().item<int64_t>();
+
+		// Iterate over the tensors and print the lines corresponding to min and max indices
+		for (const auto& tensor : tensors) {
+			// Ensure the tensor has the same batch size as the target tensor
+			if (tensor.size(0) != target.size(0)) {
+				std::cerr << "Tensor size mismatch in the batch dimension." << std::endl;
+				continue;
+			}
+
+			std::cout << "Tensor line at min index (" << minIndex << "): \n" << tensor[minIndex] << std::endl;
+			std::cout << "Tensor line at max index (" << maxIndex << "): \n" << tensor[maxIndex] << std::endl;
+		}
+	}
 	torch::Tensor PGNet::guidingLoss(const torch::Tensor& neuralProb, torch::Tensor& bsdfProb, const torch::Tensor& outRadiance, const torch::Tensor& c, const torch::Tensor& sampleProb)
 	{
-		const torch::Tensor targetLuminance = settings->targetScale * (outRadiance * ntscLuminance).sum(-1, true);
+
+		torch::Tensor targetLuminance = settings->targetScale * (outRadiance * ntscLuminance).sum(-1, true);
+		// clamp to a max of 10k
 		if (settings->clampBsdfProb)
 		{
 			bsdfProb = torch::min(bsdfProb, targetLuminance);
 		}
-		const torch::Tensor blendedQ = c * neuralProb.detach() + (1 - c) * bsdfProb;
+		const torch::Tensor blendedQ = c * neuralProb + (1 - c) * bsdfProb;
 		torch::Tensor lossQ = divergenceLoss(targetLuminance, neuralProb, sampleProb);
 		torch::Tensor lossBlendedQ = divergenceLoss(targetLuminance, blendedQ, sampleProb);
 
@@ -595,7 +678,56 @@ namespace vtx::network
 			lossQ = sigmoidClamp(lossQ, settings->lossClamp, 0.01f);
 		}
 
+		//float clampValue = 1.0f;
+		//lossBlendedQ = torch::clamp(lossBlendedQ, -clampValue, clampValue);
+		//lossQ = torch::clamp(lossQ, -clampValue, clampValue);
+
 		torch::Tensor loss = lossBlendFactor() * lossQ + (1.0f - lossBlendFactor()) * lossBlendedQ;
+		torch::Tensor additionalLoss = torch::zeros_like(loss);
+		if(settings->distributionType == config::D_NASG_AXIS_ANGLE && false)
+		{
+			additionalLoss = (1.0f - lossBlendFactor()) * 0.5f * pow((0.9f - c), 2.0f);
+			loss += additionalLoss;
+		}
+
+		//float lossMin = loss.min().item<float>();
+		//float lossMax = loss.max().item<float>();
+		// Loss min max
+		if(false)
+		{
+			const auto minIndex = loss.argmin().item<int64_t>();
+			const auto maxIndex = loss.argmax().item<int64_t>();
+
+			VTX_INFO("LOSS MIN {} with NeuralProb {}, BSDFProb {}, TargetLuminance {}, outRadiance [{},{},{}], LossQ {}, LossBlendedQ {}, Loss {}, C {}, SampleProb {}",
+				loss[minIndex].item<float>(),
+				neuralProb[minIndex].item<float>(),
+				bsdfProb[minIndex].item<float>(),
+				targetLuminance[minIndex].item<float>(),
+				outRadiance[minIndex][0].item<float>(),
+				outRadiance[minIndex][1].item<float>(),
+				outRadiance[minIndex][2].item<float>(),
+				lossQ[minIndex].item<float>(),
+				lossBlendedQ[minIndex].item<float>(),
+				loss[minIndex].item<float>(),
+				c[minIndex].item<float>(),
+				sampleProb[minIndex].item<float>()
+			);
+
+			VTX_INFO("LOSS MAX {} with NeuralProb {}, BSDFProb {}, TargetLuminance {}, outRadiance [{},{},{}], LossQ {}, LossBlendedQ {}, Loss {}, C {}, SampleProb {}",
+					loss[maxIndex].item<float>(),
+					neuralProb[maxIndex].item<float>(),
+					bsdfProb[maxIndex].item<float>(),
+					targetLuminance[maxIndex].item<float>(),
+					outRadiance[maxIndex][0].item<float>(),
+					outRadiance[maxIndex][1].item<float>(),
+					outRadiance[maxIndex][2].item<float>(),
+					lossQ[maxIndex].item<float>(),
+					lossBlendedQ[maxIndex].item<float>(),
+					loss[maxIndex].item<float>(),
+					c[maxIndex].item<float>(),
+					sampleProb[maxIndex].item<float>()
+			);
+		}
 
 		if (settings->scaleBySampleProb)
 		{
@@ -625,6 +757,8 @@ namespace vtx::network
 			VTX_ERROR("Loss Reduction Not implemented");
 		}
 
+
+
 		TRACE_TENSOR(loss);
 
 		if (settings->plotGraphs)
@@ -632,6 +766,10 @@ namespace vtx::network
 			graphs.addData(LOSS_PLOT, "Path Guiding Loss", loss.unsqueeze(-1).item<float>());
 			graphs.addData(LOSS_PLOT, "Loss Q", lossQ.mean().unsqueeze(-1).item<float>());
 			graphs.addData(LOSS_PLOT, "Loss Blended Q", lossBlendedQ.mean().unsqueeze(-1).item<float>());
+			graphs.addData(LOSS_PLOT, "Loss Additional", additionalLoss.mean().unsqueeze(-1).item<float>());
+
+			//graphs.addData(LOSS_PLOT, "Loss Min", lossMin);
+			//graphs.addData(LOSS_PLOT, "Loss Max", lossMax);
 
 			graphs.addData(PROB_PLOT, "Neural Prob", neuralProb.mean().unsqueeze(-1).item<float>());
 			graphs.addData(PROB_PLOT, "Target Prob", targetLuminance.mean().unsqueeze(-1).item<float>());
@@ -743,6 +881,7 @@ namespace vtx::network
 
 	torch::Tensor PGNet::divergenceLoss(const torch::Tensor& targetProb, const torch::Tensor& neuralProb, const torch::Tensor& wiProb)
 	{
+
 		torch::Tensor loss;
 		switch (settings->lossType)
 		{
@@ -750,7 +889,11 @@ namespace vtx::network
 			loss = kl_div(torch::log(neuralProb + bEps), targetProb, at::Reduction::None);
 			break;
 		case config::L_KL_DIV_MC_ESTIMATION:
-			loss = -(targetProb/ wiProb + bEps)* log(neuralProb + bEps);
+			{
+				const torch::Tensor weights = 1.0f/ (wiProb + bEps);
+				loss = -targetProb * log(neuralProb + bEps);
+				loss = weights * loss;
+			}
 			break;
 		case config::L_KL_DIV_MC_ESTIMATION_NORMALIZED:
 			{
@@ -759,11 +902,17 @@ namespace vtx::network
 				loss = weights * logRatio;
 			}
 			break;
-		case config::L_PEARSON_DIV:
-			loss = torch::pow(targetProb - neuralProb, 2.0f);
+		case config::L_MSE:
+			{
+				loss = torch::pow(targetProb - neuralProb, 2.0f);
+			}
 			break;
 		case config::L_PEARSON_DIV_MC_ESTIMATION:
-			loss = -torch::pow(targetProb, 2.0f) * torch::log(neuralProb + bEps);
+			{
+				const torch::Tensor sampleWeight = 1.0f / (wiProb + bEps);
+				loss = torch::pow(targetProb, 2.0f) / (neuralProb + bEps);
+				loss = loss * sampleWeight;
+			}
 			break;
 		default:
 			VTX_ERROR("Loss Type Not implemented");
@@ -792,73 +941,73 @@ namespace vtx::network
 	void InputTensors::printInfo()
 	{
 		if (position.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(position)
+			PRINT_TENSOR_SIZE_ALWAYS(position);
 		}
 		else{
 			VTX_INFO("Tensor position is not defined");
 		}
 		if (wo.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(wo)
+			PRINT_TENSOR_SIZE_ALWAYS(wo);
 		}
 		else{
 			VTX_INFO("Tensor wo is not defined");
 		}
 		if (normal.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(normal)
+			PRINT_TENSOR_SIZE_ALWAYS(normal);
 		}
 		else{
 			VTX_INFO("Tensor normal is not defined");
 		}
 		if (wi.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(wi)
+			PRINT_TENSOR_SIZE_ALWAYS(wi);
 		}
 		else{
 			VTX_INFO("Tensor wi is not defined");
 		}
 		if (bsdfProb.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(bsdfProb)
+			PRINT_TENSOR_SIZE_ALWAYS(bsdfProb);
 		}
 		else{
 			VTX_INFO("Tensor bsdfProb is not defined");
 		}
 		if (outRadiance.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(outRadiance)
+			PRINT_TENSOR_SIZE_ALWAYS(outRadiance);
 		}
 		else{
 			VTX_INFO("Tensor outRadiance is not defined");
 		}
 		if (throughput.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(throughput)
+			PRINT_TENSOR_SIZE_ALWAYS(throughput);
 		}
 		else{
 			VTX_INFO("Tensor throughput is not defined");
 		}
 		if (inRadiance.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(inRadiance)
+			PRINT_TENSOR_SIZE_ALWAYS(inRadiance);
 		}
 		else{
 			VTX_INFO("Tensor inRadiance is not defined");
 		}
 		if (instanceId.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(instanceId)
+			PRINT_TENSOR_SIZE_ALWAYS(instanceId);
 		}
 		else{
 			VTX_INFO("Tensor instanceId is not defined");
 		}
 		if (triangleId.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(triangleId)
+			PRINT_TENSOR_SIZE_ALWAYS(triangleId);
 		}
 		else{
 			VTX_INFO("Tensor triangleId is not defined");
 		}
 		if (materialId.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(materialId)
+			PRINT_TENSOR_SIZE_ALWAYS(materialId);
 		}
 		else{
 			VTX_INFO("Tensor materialId is not defined");
 		}
 		if (wiProb.defined()){
-			PRINT_TENSOR_SIZE_ALWAYS(wiProb)
+			PRINT_TENSOR_SIZE_ALWAYS(wiProb);
 		}
 		else{
 			VTX_INFO("Tensor wiProb is not defined");

@@ -8,6 +8,7 @@
 #include "Device/PipelineConfiguration.h"
 #include "Device/UploadCode/DeviceDataCoordinator.h"
 #include "Gui/Windows/AppWindow.h"
+#include "Gui/Windows/DebugWindow.h"
 #include "Gui/Windows/EnvironmentWindow.h"
 #include "Gui/Windows/ShaderGraphWindow.h"
 #include "Gui/Windows/ViewportWindow.h"
@@ -45,14 +46,14 @@ namespace vtx
 
 		windowManager = std::make_shared<WindowManager>();
 		windowManager->createWindow<AppWindow>();
-		windowManager->createWindow<ExperimentsWindow>();
 		windowManager->createWindow<SceneHierarchyWindow>();
 		windowManager->createWindow<ViewportWindow>();
 		windowManager->createWindow<PropertiesWindow>();
 		windowManager->createWindow<EnvironmentWindow>();
 		windowManager->createWindow<ShaderGraphWindow>();
 		windowManager->createWindow<GraphWindow>();
-
+		windowManager->createWindow<DebugWindow>();
+		windowManager->createWindow<ExperimentsWindow>();
 	}
 
 	void Application::reset()
@@ -113,14 +114,14 @@ namespace vtx
 		glfwSwapInterval(0); // Enable vsync
 		// Initialize the window
 		glfwSetWindowUserPointer(glfwWindow, this);
-		glfwSetScrollCallback(glfwWindow, 
-			[](GLFWwindow* window, const double xOffset, const double yOffset)
-			{
-				ImGuiIO& io = ImGui::GetIO();
-				io.MouseWheelH += (float)xOffset;
-				io.MouseWheel += (float)yOffset;
-			}
-		);
+		glfwSetScrollCallback(glfwWindow,
+							  [](GLFWwindow* window, const double xOffset, const double yOffset)
+							  {
+								  ImGuiIO& io = ImGui::GetIO();
+								  io.MouseWheelH += (float)xOffset;
+								  io.MouseWheel += (float)yOffset;
+							  }
+							 );
 		//glfwSetFramebufferSizeCallback(m_Window, FramebufferResizeCallback);
 	}
 
@@ -200,23 +201,39 @@ namespace vtx
 			if (iteration > 3) // it seems the minimum frame to render the initial gui
 			{
 				LoadingSaving::get().performLoadSave();
-				if (loadEM && LoadingSaving::get().getCurrentState() == LoadingSaving::LoadSaveState::Idle)
+				if (!experimentArgs.filePath.empty() && LoadingSaving::get().getCurrentState() == LoadingSaving::LoadSaveState::Idle)
 				{
-					ExperimentsManager* em;
-					if (utl::fileExists(EmFile))
+					auto scene = graph::Scene::get();
+					if (utl::fileExists(experimentArgs.filePath))
 					{
-						vtx::serializer::deserializeExperimentManager(EmFile);
-						loadEM = false;
+						vtx::serializer::deserializeExperimentManager(experimentArgs.filePath);
+						experimentArgs.filePath.clear();
 					}
 					else
 					{
-						graph::Scene::get()->renderer->waveFrontIntegrator.network.experimentManager.saveFilePath = EmFile;
-					}
-					if (const std::shared_ptr<ExperimentsWindow> ew = windowManager->getWindow<ExperimentsWindow>(); ew != nullptr)
-					{
-						ew->performBatchExperiment = true;
+						scene->renderer->waveFrontIntegrator.network.experimentManager.saveFilePath = experimentArgs.filePath;
 					}
 
+					ExperimentsManager& em = scene->renderer->waveFrontIntegrator.network.experimentManager;
+					if (experimentArgs.overwriteExperiment)
+					{
+						em.cleanExperiments();
+					}
+					if (experimentArgs.recomputeGt)
+					{
+						em.isGroundTruthReady = false;
+					}
+					if (const std::shared_ptr<ExperimentsWindow> ew = windowManager->getWindow<ExperimentsWindow>(); experimentArgs.doExperiments && ew != nullptr)
+					{
+						em.height                    = experimentArgs.height;
+						em.width                     = experimentArgs.width;
+						em.gtSamples                 = experimentArgs.gtSamples;
+						em.testSamples               = experimentArgs.expSamples;
+						em.stopAfterPlanned          = experimentArgs.stopAfterPlanned;
+						em.doAblation                = experimentArgs.doAblationStudy;
+						ew->performBatchExperiment   = true;
+						experimentArgs.doExperiments = false;
+					}
 				}
 			}
 			windowManager->renderWindows();

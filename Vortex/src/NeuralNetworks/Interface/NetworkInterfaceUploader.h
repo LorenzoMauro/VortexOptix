@@ -23,12 +23,4 @@ namespace vtx
 	bool needNetworkInterfaceReallocation(const int& numberOfPixels, int maxBounce, int maxTrainingDataSize, const network::config::DistributionType& type, const int& mixtureSize);
 
 	void resetNetworkInterfaceAllocation();
-
-	NetworkDebugInfo* uploadNetworkDebugInfo(int mixtureSize, const network::config::DistributionType& type, const int maxBounce);
-	NetworkDebugInfo* getPreviousNetworkDebugInfo();
-
-	std::vector<math::vec3f> getDebugBouncesFromDevice(const int maxBounce);
-	std::vector<BounceData> getPixelBounceData(const int pixel, const int maxBounce);
-
-	NetworkDebugInfo getNetworkDebugInfoFromDevice();
 }
