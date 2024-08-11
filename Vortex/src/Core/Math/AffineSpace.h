@@ -139,7 +139,11 @@ namespace gdt {
       return AffineSpaceT(L(U,V,Z),eye);
     }
 
-
+    inline __both__ AffineSpaceT inverse() const
+    {
+	    auto lInv = l.inverse();
+        return AffineSpaceT(lInv, -(lInv * p));
+    }
 
   };
 
