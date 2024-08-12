@@ -121,11 +121,10 @@ Before diving into the installation process, there are some dependencies you nee
 3. **Clang 12**: [Download here](https://releases.llvm.org/download.html)
 4. **OptiX 8.0**: [Download here](https://developer.nvidia.com/designworks/optix/download)
 5. **LibTorch**:
-   - Go to [PyTorch's site](https://pytorch.org/get-started/locally/)
-   - Choose:
-     - OS: Windows
-     - Package: Libtorch
-     - Compute Platform: CUDA 11.7
+   - The currently compatible version can be selected from this list of older versions at
+   [Pythorch's CUDA 11.7 Versions](https://download.pytorch.org/libtorch/cu117) (window version 2.0.1) or more specifically:
+        - [release build](https://download.pytorch.org/libtorch/cu117/libtorch-win-shared-with-deps-2.0.1%2Bcu117.zip)
+        - [debug build](https://download.pytorch.org/libtorch/cu117/libtorch-win-shared-with-deps-debug-2.0.1%2Bcu117.zip)
    - Grab both Release and Debug versions. Once downloaded, extract them. You'll find a `libtorch` folder inside each which will be needed later.
 
 ### Scripted Setup

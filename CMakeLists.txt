@@ -69,6 +69,12 @@ add_subdirectory(${EXTERNAL}/glad)
 add_subdirectory(${EXTERNAL}/imnodes)
 #add_subdirectory(${EXTERNAL}/ImGuiFileDialog)
 
+#set spdlog_DIR to $EXTERNAL/spdlog/lib/cmake/spdlog
+
+# set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_SOURCE_DIR}/ext/spdlog/cmake/")
+add_subdirectory(${EXTERNAL}/spdlog)
+get_target_property(SPDLOG_INCLUDE_DIRS spdlog::spdlog_header_only INTERFACE_INCLUDE_DIRECTORIES)
+
 set(CU_MIN_ARCH 75)
 set(CU_MAX_ARCH 86)
 set(TCNN_BUILD_BENCHMARK OFF)
@@ -78,8 +84,6 @@ set(ENV{TCNN_CUDA_ARCHITECTURES} "${CU_MIN_ARCH};${CU_MAX_ARCH}")
 add_subdirectory(${EXTERNAL}/tcnn)
 get_target_property(TCNN_INCLUDE_DIRECTORIES tiny-cuda-nn INCLUDE_DIRECTORIES)
 
-find_package(spdlog CONFIG REQUIRED)
-get_target_property(SPDLOG_INCLUDE_DIRS spdlog::spdlog_header_only INTERFACE_INCLUDE_DIRECTORIES)
 
 configure_file(${CMAKE_SOURCE_DIR}/assets/VortexIco.rc.in ${CMAKE_SOURCE_DIR}/assets/VortexIco.rc @ONLY)
 

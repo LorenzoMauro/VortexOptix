@@ -62,7 +62,7 @@ try:
 
     setup.prepareMDL(extFolder, vcpkg_dir, clang12Path)
 
-    setup.updateTCNNFmtSubmodule(extFolder)
+    # setup.updateTCNNFmtSubmodule(extFolder)
 
     setup.unzipDemoScene(repoRoot)
     

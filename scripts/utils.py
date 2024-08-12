@@ -174,7 +174,7 @@ class Setup():
                 ['vcpkg', 'install', 'boost-any', 'boost-uuid', '--triplet=x64-windows-static'],
                 ['vcpkg', 'install', 'openimageio', '--triplet=x64-windows-static'],
                 ['vcpkg', 'install', 'imgui[docking-experimental,opengl3-binding,glfw-binding,win32-binding]', '--triplet=x64-windows-static-md', '--recurse'],
-                ['vcpkg', 'install', 'spdlog', '--triplet=x64-windows-static-md'],
+                # ['vcpkg', 'install', 'spdlog', '--triplet=x64-windows-static-md'],
                 #['vcpkg', 'install', 'yaml-cpp', '--triplet=x64-windows-static-md'],
                 ['vcpkg', 'install', 'assimp', '--triplet=x64-windows-static-md'],
                 ['vcpkg', 'install', 'glfw3', '--triplet=x64-windows-static-md'],

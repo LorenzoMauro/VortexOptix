@@ -10,3 +10,6 @@
 [submodule "ext/tcnn"]
 	path = ext/tcnn
 	url = https://github.com/NVlabs/tiny-cuda-nn.git
+[submodule "ext/spdlog"]
+	path = ext/spdlog
+	url = https://github.com/gabime/spdlog.git
